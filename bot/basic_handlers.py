@@ -15,11 +15,28 @@ async def start_handle(update: Update, context: CallbackContext, db):
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
     db.start_new_dialog(user_id)
 
+    # Проверяем, установлен ли уже язык у пользователя
+    user_language = db.get_user_attribute(user_id, "language")
+
+    if not user_language:
+        # Если язык не установлен, показываем выбор языка НА РУССКОМ
+        text = "🌐 <b>Выберите язык / Choose language:</b>"
+
+        keyboard = [
+            [InlineKeyboardButton("🇷🇺 Русский", callback_data="set_language|ru")],
+            [InlineKeyboardButton("🇺🇸 English", callback_data="set_language|en")]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+        return
+
+    # Если язык уже установлен, показываем обычное приветствие
     reply_text = t(user_id, "start_greeting")
     reply_text += t(user_id, "help_message")
 
     await update.message.reply_text(reply_text, parse_mode=ParseMode.HTML)
-    await show_chat_modes_handle(update, context, db)
+    # await show_chat_modes_handle(update, context, db)
 
 async def help_handle(update: Update, context: CallbackContext, db):
     await register_user_if_not_exists(update, context, update.message.from_user, db)

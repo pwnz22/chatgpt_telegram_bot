@@ -103,27 +103,39 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
 
     user_id = query.from_user.id
     language = query.data.split("|")[1]
-    old_language = db.get_user_attribute(user_id, "language") or "en"
+    old_language = db.get_user_attribute(user_id, "language")
 
-    # Проверяем, действительно ли язык изменился
+    # Устанавливаем новый язык
+    db.set_user_attribute(user_id, "language", language)
+    db.set_user_attribute(user_id, "last_interaction", datetime.now())
+
+    # Если это первый выбор языка (old_language is None), показываем полное приветствие
+    if old_language is None:
+        # Начинаем новый диалог для применения языковых изменений
+        db.start_new_dialog(user_id)
+
+        # Показываем приветствие на выбранном языке
+        reply_text = t(user_id, "start_greeting")
+        reply_text += t(user_id, "help_message")
+
+        await query.edit_message_text(reply_text, parse_mode=ParseMode.HTML)
+
+        # Показываем режимы чата
+        await show_chat_modes_handle_from_callback(query, context, db)
+        return
+
+    # Если язык уже был установлен ранее
     if old_language == language:
         # Язык не изменился, показываем текущий статус
         status_text = t(user_id, "language_already_set")
         await query.edit_message_text(status_text, parse_mode=ParseMode.HTML)
         return
 
-    # Устанавливаем новый язык
-    db.set_user_attribute(user_id, "language", language)
-
-    # Обновляем время последнего взаимодействия
-    db.set_user_attribute(user_id, "last_interaction", datetime.now())
-
-    # Начинаем новый диалог для применения языковых изменений
+    # Язык изменился, начинаем новый диалог
     db.start_new_dialog(user_id)
 
     # Отправляем уведомление на новом языке
     confirmation_text = t(user_id, "language_change_notification")
-
     await query.edit_message_text(confirmation_text, parse_mode=ParseMode.HTML)
 
 # Обработчик для callback "language_info"
@@ -135,3 +147,20 @@ async def language_info_callback_handle(update: Update, context: CallbackContext
 async def back_to_language_callback_handle(update: Update, context: CallbackContext, db):
     """Обработчик для кнопки возврата к выбору языка"""
     await back_to_language_selection(update, context, db)
+
+# Вспомогательная функция для показа режимов чата из callback
+async def show_chat_modes_handle_from_callback(query, context: CallbackContext, db):
+    """Показать режимы чата после выбора языка"""
+    user_id = query.from_user.id
+
+    # Используем ту же логику, что и в basic_handlers.py
+    from basic_handlers import get_chat_mode_menu
+    text, reply_markup = get_chat_mode_menu(0, user_id)
+
+    # Отправляем новое сообщение вместо редактирования
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text,
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.HTML
+    )
