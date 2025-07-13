@@ -94,6 +94,12 @@ def get_chat_mode_menu(page_index: int, user_id: int, chat_id: int = None, db=No
     # Используем именованные параметры для t()
     text = t(user_id, "select_chat_mode", chat_id=chat_id, count=len(config.chat_modes))
 
+    # Получаем текущий режим чата с учетом групп
+    if chat_id and chat_id < 0:  # Группа
+        current_chat_mode = db.get_group_attribute(chat_id, "current_chat_mode") or "assistant"
+    else:  # Личный чат
+        current_chat_mode = db.get_user_attribute(user_id, "current_chat_mode") or "assistant"
+
     # buttons
     chat_mode_keys = list(config.chat_modes.keys())
     page_chat_mode_keys = chat_mode_keys[page_index * config.n_chat_modes_per_page:(page_index + 1) * config.n_chat_modes_per_page]
@@ -101,6 +107,11 @@ def get_chat_mode_menu(page_index: int, user_id: int, chat_id: int = None, db=No
     keyboard = []
     for chat_mode_key in page_chat_mode_keys:
         name = config.chat_modes[chat_mode_key]["name"]
+
+        # Добавляем галочку для текущего режима
+        if chat_mode_key == current_chat_mode:
+            name = "✅ " + name
+
         keyboard.append([InlineKeyboardButton(name, callback_data=f"set_chat_mode|{chat_mode_key}")])
 
     # pagination
