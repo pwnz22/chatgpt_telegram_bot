@@ -53,20 +53,22 @@ async def register_user_if_not_exists(update: Update, context: CallbackContext, 
 
 async def register_group_if_not_exists(update: Update, context: CallbackContext, db):
     """Регистрация группы если не существует"""
-
-    # Получаем информацию о чате
-    if hasattr(update, 'message') and update.message:
+    if update.message:
         chat = update.message.chat
-    elif hasattr(update, 'callback_query') and update.callback_query:
+    elif update.callback_query:
         chat = update.callback_query.message.chat
     else:
-        return  # Не можем определить чат
+        return
 
-    # Проверяем, что это групповой чат (отрицательный ID)
-    if chat.id < 0:
-        if not db.check_if_group_exists(chat.id):
-            group_title = chat.title or f"Group {abs(chat.id)}"
-            db.add_new_group(chat.id, group_title)
+    # Только для групп
+    if chat.type not in ["group", "supergroup"]:
+        return
+
+    group_id = chat.id
+    group_title = chat.title or "Unknown Group"
+
+    if not db.check_if_group_exists(group_id):
+        db.add_new_group(group_id, group_title)
 
 def split_text_into_chunks(text, chunk_size):
     """Разделение текста на части"""

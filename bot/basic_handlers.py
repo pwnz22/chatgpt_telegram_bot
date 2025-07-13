@@ -102,36 +102,28 @@ async def new_dialog_handle(update: Update, context: CallbackContext, db):
 
     await update.message.reply_text(welcome_text, parse_mode=ParseMode.HTML)
 
-# Chat modes handlers
-def get_chat_mode_menu(page_index: int, user_id: int, chat_id: int, db):
-    n_chat_modes_per_page = config.n_chat_modes_per_page
-
-    # Определяем контекст (группа или приватный чат)
-    if chat_id < 0:
-        context_text = t(user_id, "select_chat_mode_group", count=len(config.chat_modes))
-        current_chat_mode = db.get_chat_mode(user_id, chat_id)
+def get_chat_mode_menu(page_index: int, user_id: int, chat_id: int = None):
+    """Получить меню режимов чата с поддержкой групп"""
+    # Если это группа, берем настройки группы
+    if chat_id and chat_id < 0:  # Отрицательный ID = группа
+        from utils import register_group_if_not_exists
+        text = t(user_id, "select_chat_mode", count=len(config.chat_modes))
     else:
-        context_text = t(user_id, "select_chat_mode", count=len(config.chat_modes))
-        current_chat_mode = db.get_chat_mode(user_id, chat_id)
-
-    text = context_text
+        text = t(user_id, "select_chat_mode", count=len(config.chat_modes))
 
     # buttons
     chat_mode_keys = list(config.chat_modes.keys())
-    page_chat_mode_keys = chat_mode_keys[page_index * n_chat_modes_per_page:(page_index + 1) * n_chat_modes_per_page]
+    page_chat_mode_keys = chat_mode_keys[page_index * config.n_chat_modes_per_page:(page_index + 1) * config.n_chat_modes_per_page]
 
     keyboard = []
     for chat_mode_key in page_chat_mode_keys:
         name = config.chat_modes[chat_mode_key]["name"]
-        # Добавляем галочку для текущего режима
-        if chat_mode_key == current_chat_mode:
-            name = "✅ " + name
         keyboard.append([InlineKeyboardButton(name, callback_data=f"set_chat_mode|{chat_mode_key}")])
 
     # pagination
-    if len(chat_mode_keys) > n_chat_modes_per_page:
+    if len(chat_mode_keys) > config.n_chat_modes_per_page:
         is_first_page = (page_index == 0)
-        is_last_page = ((page_index + 1) * n_chat_modes_per_page >= len(chat_mode_keys))
+        is_last_page = ((page_index + 1) * config.n_chat_modes_per_page >= len(chat_mode_keys))
 
         if is_first_page:
             keyboard.append([
@@ -153,25 +145,27 @@ def get_chat_mode_menu(page_index: int, user_id: int, chat_id: int, db):
 async def show_chat_modes_handle(update: Update, context: CallbackContext, db):
     await register_user_if_not_exists(update, context, update.message.from_user, db)
 
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
 
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat.id
 
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
-    text, reply_markup = get_chat_mode_menu(0, user_id, chat_id, db)
+    text, reply_markup = get_chat_mode_menu(0, user_id, chat_id)
     await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def show_chat_modes_callback_handle(update: Update, context: CallbackContext, db):
     await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
 
-    user_id = update.callback_query.from_user.id
-    chat_id = update.callback_query.message.chat_id
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
 
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
+    user_id = update.callback_query.from_user.id
+    chat_id = update.callback_query.message.chat.id
 
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
@@ -182,7 +176,7 @@ async def show_chat_modes_callback_handle(update: Update, context: CallbackConte
     if page_index < 0:
         return
 
-    text, reply_markup = get_chat_mode_menu(page_index, user_id, chat_id, db)
+    text, reply_markup = get_chat_mode_menu(page_index, user_id, chat_id)
     try:
         await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
     except telegram.error.BadRequest as e:
@@ -191,46 +185,50 @@ async def show_chat_modes_callback_handle(update: Update, context: CallbackConte
 
 async def set_chat_mode_handle(update: Update, context: CallbackContext, db):
     await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
-    user_id = update.callback_query.from_user.id
-    chat_id = update.callback_query.message.chat_id
 
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
+
+    user_id = update.callback_query.from_user.id
+    chat_id = update.callback_query.message.chat.id
 
     query = update.callback_query
     await query.answer()
 
     chat_mode = query.data.split("|")[1]
 
-    # Устанавливаем режим чата в зависимости от контекста
-    db.set_chat_mode(user_id, chat_mode, chat_id)
-    db.start_new_dialog(user_id, chat_id)
+    # Для групп сохраняем в настройках группы
+    if chat_id < 0:  # Группа
+        db.set_group_attribute(chat_id, "current_chat_mode", chat_mode)
+        user_language = db.get_group_attribute(chat_id, "language") or "en"
+    else:  # Личный чат
+        db.set_user_attribute(user_id, "current_chat_mode", chat_mode)
+        db.start_new_dialog(user_id)
+        user_language = db.get_user_attribute(user_id, "language") or "en"
 
-    # Получаем локализованное welcome сообщение напрямую
-    user_language = db.get_user_attribute(user_id, "language") or "en"
+    # Получаем локализованное welcome сообщение
     welcome_message = config.chat_modes[chat_mode]["welcome_message"]
 
-    # Если welcome_message - это словарь с языками
     if isinstance(welcome_message, dict):
         welcome_text = welcome_message.get(user_language, welcome_message.get("en", "Welcome!"))
     else:
-        # Если обычная строка (обратная совместимость)
         welcome_text = welcome_message
 
-    # Добавляем информацию о контексте для групп
-    if chat_id < 0:
-        mode_name = config.chat_modes[chat_mode]["name"]
-        context_info = t(user_id, "chat_mode_set_for_group", mode_name=mode_name)
-        welcome_text = context_info + "\n\n" + welcome_text
-
     await context.bot.send_message(
-        chat_id,
+        update.callback_query.message.chat.id,
         welcome_text,
         parse_mode=ParseMode.HTML
     )
 
-def get_settings_menu(user_id: int, db):
-    current_model = db.get_user_attribute(user_id, "current_model")
+def get_settings_menu(user_id: int, chat_id: int, db):
+    """Получить меню настроек с поддержкой групп"""
+    # Определяем откуда брать настройки
+    if chat_id < 0:  # Группа
+        current_model = db.get_group_attribute(chat_id, "current_model")
+    else:  # Личный чат
+        current_model = db.get_user_attribute(user_id, "current_model")
+
     text = config.models["info"][current_model]["description"]
 
     text += "\n\n"
@@ -240,14 +238,13 @@ def get_settings_menu(user_id: int, db):
 
     text += t(user_id, "select_model")
 
-    # buttons to choose models - ИСПРАВЛЕНО: каждая кнопка в отдельной строке
+    # buttons to choose models
     keyboard = []
     for model_key in config.models["available_text_models"]:
         title = config.models["info"][model_key]["name"]
         if model_key == current_model:
             title = "✅ " + title
 
-        # Каждая кнопка в отдельной строке (списке)
         keyboard.append([
             InlineKeyboardButton(title, callback_data=f"set_settings|{model_key}")
         ])
@@ -259,33 +256,41 @@ def get_settings_menu(user_id: int, db):
 async def settings_handle(update: Update, context: CallbackContext, db):
     await register_user_if_not_exists(update, context, update.message.from_user, db)
 
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
 
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat.id
 
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
-    text, reply_markup = get_settings_menu(user_id, db)
+    text, reply_markup = get_settings_menu(user_id, chat_id, db)
     await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def set_settings_handle(update: Update, context: CallbackContext, db):
     await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
-    user_id = update.callback_query.from_user.id
-    chat_id = update.callback_query.message.chat_id
 
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
+
+    user_id = update.callback_query.from_user.id
+    chat_id = update.callback_query.message.chat.id
 
     query = update.callback_query
     await query.answer()
 
     _, model_key = query.data.split("|")
-    db.set_user_attribute(user_id, "current_model", model_key)
-    db.start_new_dialog(user_id, chat_id)
 
-    text, reply_markup = get_settings_menu(user_id, db)
+    # Для групп сохраняем в настройках группы
+    if chat_id < 0:  # Группа
+        db.set_group_attribute(chat_id, "current_model", model_key)
+    else:  # Личный чат
+        db.set_user_attribute(user_id, "current_model", model_key)
+        db.start_new_dialog(user_id)
+
+    text, reply_markup = get_settings_menu(user_id, chat_id, db)
     try:
         await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
     except telegram.error.BadRequest as e:

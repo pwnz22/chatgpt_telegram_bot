@@ -7,24 +7,27 @@ from utils import register_user_if_not_exists, register_group_if_not_exists
 from localization import t
 
 async def language_handle(update: Update, context: CallbackContext, db):
-    """Показать меню выбора языка"""
+    """Показать меню выбора языка с поддержкой групп"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)
+
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
+
     user_id = update.message.from_user.id
-    chat_id = update.message.chat_id
+    chat_id = update.message.chat.id
 
-    # Регистрируем группу если это групповой чат
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
-
-    # Обновляем время последнего взаимодействия
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
     text = t(user_id, "select_language")
 
     keyboard = []
 
-    # Получаем текущий язык пользователя
-    current_lang = db.get_user_attribute(user_id, "language") or "en"
+    # Получаем текущий язык (группы или пользователя)
+    if chat_id < 0:  # Группа
+        current_lang = db.get_group_attribute(chat_id, "language") or "en"
+    else:  # Личный чат
+        current_lang = db.get_user_attribute(user_id, "language") or "en"
 
     # Создаем кнопки для языков
     languages = [
@@ -69,14 +72,18 @@ async def back_to_language_selection(update: Update, context: CallbackContext, d
     await query.answer()
 
     user_id = query.from_user.id
+    chat_id = query.message.chat.id
 
     # Повторно показываем меню выбора языка
     text = t(user_id, "select_language")
 
     keyboard = []
 
-    # Получаем текущий язык пользователя
-    current_lang = db.get_user_attribute(user_id, "language") or "en"
+    # Получаем текущий язык (группы или пользователя)
+    if chat_id < 0:  # Группа
+        current_lang = db.get_group_attribute(chat_id, "language") or "en"
+    else:  # Личный чат
+        current_lang = db.get_user_attribute(user_id, "language") or "en"
 
     # Создаем кнопки для языков
     languages = [
@@ -100,29 +107,33 @@ async def back_to_language_selection(update: Update, context: CallbackContext, d
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def set_language_handle(update: Update, context: CallbackContext, db):
-    """Установить язык пользователя с полным уведомлением"""
+    """Установить язык с поддержкой групп"""
     await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
+
+    # Регистрируем группу если нужно
+    from utils import register_group_if_not_exists
+    await register_group_if_not_exists(update, context, db)
 
     query = update.callback_query
     await query.answer()
 
     user_id = query.from_user.id
-    chat_id = query.message.chat_id
+    chat_id = query.message.chat.id
     language = query.data.split("|")[1]
-    old_language = db.get_user_attribute(user_id, "language")
 
-    # Регистрируем группу если это групповой чат
-    if chat_id < 0:
-        await register_group_if_not_exists(update, context, db)
+    # Определяем старый язык и устанавливаем новый
+    if chat_id < 0:  # Группа
+        old_language = db.get_group_attribute(chat_id, "language")
+        db.set_group_attribute(chat_id, "language", language)
+    else:  # Личный чат
+        old_language = db.get_user_attribute(user_id, "language")
+        db.set_user_attribute(user_id, "language", language)
+        db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
-    # Устанавливаем новый язык
-    db.set_user_attribute(user_id, "language", language)
-    db.set_user_attribute(user_id, "last_interaction", datetime.now())
-
-    # Если это первый выбор языка (old_language is None), показываем полное приветствие
-    if old_language is None:
+    # Если это первый выбор языка для личного чата
+    if chat_id > 0 and old_language is None:
         # Начинаем новый диалог для применения языковых изменений
-        db.start_new_dialog(user_id, chat_id)
+        db.start_new_dialog(user_id)
 
         # Показываем приветствие на выбранном языке
         reply_text = t(user_id, "start_greeting")
@@ -141,8 +152,9 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
         await query.edit_message_text(status_text, parse_mode=ParseMode.HTML)
         return
 
-    # Язык изменился, начинаем новый диалог
-    db.start_new_dialog(user_id, chat_id)
+    # Язык изменился
+    if chat_id > 0:  # Личный чат - начинаем новый диалог
+        db.start_new_dialog(user_id)
 
     # Отправляем уведомление на новом языке
     confirmation_text = t(user_id, "language_change_notification")

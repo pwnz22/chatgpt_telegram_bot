@@ -24,40 +24,60 @@ class Database:
             else:
                 return False
 
-    def check_if_group_exists(self, group_id: int):
+    def check_if_group_exists(self, group_id: int, raise_exception: bool = False):
         """Проверить существование группы"""
-        return self.group_collection.count_documents({"_id": group_id}) > 0
+        if self.db["groups"].count_documents({"_id": group_id}) > 0:
+            return True
+        else:
+            if raise_exception:
+                raise ValueError(f"Group {group_id} does not exist")
+            else:
+                return False
+
 
     def add_new_group(self, group_id: int, group_title: str = ""):
         """Добавить новую группу"""
+        group_dict = {
+            "_id": group_id,
+            "title": group_title,
+            "current_chat_mode": "assistant",
+            "current_model": config.models["available_text_models"][0],
+            "language": "en",  # Язык по умолчанию
+            "created_at": datetime.now(),
+            "last_interaction": datetime.now()
+        }
+
         if not self.check_if_group_exists(group_id):
-            group_dict = {
-                "_id": group_id,
-                "title": group_title,
-                "current_chat_mode": "assistant",  # Режим по умолчанию для группы
-                "created_at": datetime.now(),
-                "last_interaction": datetime.now()
-            }
-            self.group_collection.insert_one(group_dict)
+            self.db["groups"].insert_one(group_dict)
 
     def get_group_attribute(self, group_id: int, key: str):
         """Получить атрибут группы"""
         if not self.check_if_group_exists(group_id):
             return None
 
-        group_dict = self.group_collection.find_one({"_id": group_id})
-        return group_dict.get(key, None)
+        group_dict = self.db["groups"].find_one({"_id": group_id})
+
+        if key not in group_dict:
+            # Значения по умолчанию
+            defaults = {
+                "current_chat_mode": "assistant",
+                "current_model": config.models["available_text_models"][0],
+                "language": "en"
+            }
+            return defaults.get(key, None)
+
+        return group_dict[key]
 
     def set_group_attribute(self, group_id: int, key: str, value: Any):
         """Установить атрибут группы"""
+        # Создаем группу если не существует
         if not self.check_if_group_exists(group_id):
-            return False
+            self.add_new_group(group_id)
 
-        self.group_collection.update_one(
+        self.db["groups"].update_one(
             {"_id": group_id},
-            {"$set": {key: value}}
+            {"$set": {key: value, "last_interaction": datetime.now()}}
         )
-        return True
 
     def get_chat_mode(self, user_id: int, chat_id: int = None):
         """Получить режим чата в зависимости от контекста (группа или приватный чат)"""

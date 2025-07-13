@@ -16,9 +16,13 @@ from localization import t
 user_semaphores = {}
 user_tasks = {}
 
-def get_language_instruction(user_id: int, db) -> str:
-    """Получить инструкцию о языке для ChatGPT"""
-    user_language = db.get_user_attribute(user_id, "language") or "en"
+def get_language_instruction(user_id: int, chat_id: int, db) -> str:
+    """Получить инструкцию о языке для ChatGPT с поддержкой групп"""
+    # Определяем источник языка
+    if chat_id < 0:  # Группа
+        user_language = db.get_group_attribute(chat_id, "language") or "en"
+    else:  # Личный чат
+        user_language = db.get_user_attribute(user_id, "language") or "en"
 
     language_instructions = {
         "ru": "Отвечай ТОЛЬКО на русском языке. Будь дружелюбным и полезным помощником. Все твои ответы должны быть на русском языке, независимо от языка вопроса.",
@@ -27,20 +31,26 @@ def get_language_instruction(user_id: int, db) -> str:
 
     return language_instructions.get(user_language, language_instructions["en"])
 
-def enhance_dialog_messages_with_language(dialog_messages: list, user_id: int, db) -> list:
-    """Добавить языковую инструкцию к диалогу"""
+def enhance_dialog_messages_with_language(dialog_messages: list, user_id: int, chat_id: int, db) -> list:
+    """Добавить языковую инструкцию к диалогу с поддержкой групп"""
     if not dialog_messages:
         dialog_messages = []
 
-    language_instruction = get_language_instruction(user_id, db)
+    language_instruction = get_language_instruction(user_id, chat_id, db)
 
     # Создаем копию сообщений
     enhanced_messages = []
 
     # Добавляем языковую инструкцию как первое системное сообщение
+    # Определяем язык для ответа бота
+    if chat_id < 0:  # Группа
+        bot_language = db.get_group_attribute(chat_id, "language") or "en"
+    else:  # Личный чат
+        bot_language = db.get_user_attribute(user_id, "language") or "en"
+
     enhanced_messages.append({
         "user": [{"type": "text", "text": f"SYSTEM: {language_instruction}"}],
-        "bot": "Понял, буду отвечать на выбранном языке." if db.get_user_attribute(user_id, "language") == "ru" else "Understood, I will respond in the selected language.",
+        "bot": "Понял, буду отвечать на выбранном языке." if bot_language == "ru" else "Understood, I will respond in the selected language.",
         "date": datetime.now()
     })
 
@@ -146,9 +156,14 @@ async def check_image_limits(update: Update, user_id: int, db) -> bool:
 
     return True
 
-async def check_model_access(update: Update, user_id: int, db) -> str:
-    """Проверить доступ к модели и вернуть допустимую модель"""
-    current_model = db.get_user_attribute(user_id, "current_model")
+async def check_model_access(update: Update, user_id: int, chat_id: int, db) -> str:
+    """Проверить доступ к модели и вернуть допустимую модель с поддержкой групп"""
+    # Получаем модель из настроек группы или пользователя
+    if chat_id < 0:  # Группа
+        current_model = db.get_group_attribute(chat_id, "current_model")
+    else:  # Личный чат
+        current_model = db.get_user_attribute(user_id, "current_model")
+
     premium_models = ["gpt-4", "gpt-4o", "gpt-4-vision-preview"]
     is_premium = db.get_user_subscription_status(user_id)
 
@@ -157,8 +172,15 @@ async def check_model_access(update: Update, user_id: int, db) -> str:
             t(user_id, "gpt4_premium_only"),
             parse_mode=ParseMode.HTML
         )
-        db.set_user_attribute(user_id, "current_model", "gpt-3.5-turbo")
-        return "gpt-3.5-turbo"
+
+        # Устанавливаем fallback модель
+        fallback_model = "gpt-3.5-turbo"
+        if chat_id < 0:  # Группа
+            db.set_group_attribute(chat_id, "current_model", fallback_model)
+        else:  # Личный чат
+            db.set_user_attribute(user_id, "current_model", fallback_model)
+
+        return fallback_model
 
     return current_model
 
