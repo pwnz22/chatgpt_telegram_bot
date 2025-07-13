@@ -1,4 +1,4 @@
-# basic_handlers.py - Базовые обработчики команд с локализацией
+# basic_handlers.py - Базовые обработчики команд с локализацией (упрощенная версия)
 from datetime import datetime
 import telegram
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -51,8 +51,20 @@ async def new_dialog_handle(update: Update, context: CallbackContext, db):
     success_text = t(user_id, "new_dialog_started")
     await update.message.reply_text(success_text)
 
+    # Получаем локализованное welcome сообщение напрямую
     chat_mode = db.get_user_attribute(user_id, "current_chat_mode")
-    await update.message.reply_text(f"{config.chat_modes[chat_mode]['welcome_message']}", parse_mode=ParseMode.HTML)
+    user_language = db.get_user_attribute(user_id, "language") or "en"
+
+    welcome_message = config.chat_modes[chat_mode]["welcome_message"]
+
+    # Если welcome_message - это словарь с языками
+    if isinstance(welcome_message, dict):
+        welcome_text = welcome_message.get(user_language, welcome_message.get("en", "Welcome!"))
+    else:
+        # Если обычная строка (обратная совместимость)
+        welcome_text = welcome_message
+
+    await update.message.reply_text(welcome_text, parse_mode=ParseMode.HTML)
 
 # Chat modes handlers
 def get_chat_mode_menu(page_index: int, user_id: int):
@@ -131,9 +143,20 @@ async def set_chat_mode_handle(update: Update, context: CallbackContext, db):
     db.set_user_attribute(user_id, "current_chat_mode", chat_mode)
     db.start_new_dialog(user_id)
 
+    # Получаем локализованное welcome сообщение напрямую
+    user_language = db.get_user_attribute(user_id, "language") or "en"
+    welcome_message = config.chat_modes[chat_mode]["welcome_message"]
+
+    # Если welcome_message - это словарь с языками
+    if isinstance(welcome_message, dict):
+        welcome_text = welcome_message.get(user_language, welcome_message.get("en", "Welcome!"))
+    else:
+        # Если обычная строка (обратная совместимость)
+        welcome_text = welcome_message
+
     await context.bot.send_message(
         update.callback_query.message.chat.id,
-        f"{config.chat_modes[chat_mode]['welcome_message']}",
+        welcome_text,
         parse_mode=ParseMode.HTML
     )
 

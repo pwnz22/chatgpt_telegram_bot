@@ -217,9 +217,25 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         if use_new_dialog_timeout:
             if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
                 db.start_new_dialog(user_id)
+
+                # Получаем локализованное welcome сообщение напрямую
+                user_language = db.get_user_attribute(user_id, "language") or "en"
                 mode_name = config.chat_modes[chat_mode]['name']
+
+                # Отправляем уведомление о таймауте
                 timeout_text = t(user_id, "dialog_timeout", mode_name=mode_name)
                 await update.message.reply_text(timeout_text, parse_mode=ParseMode.HTML)
+
+                # Получаем и отправляем локализованное welcome сообщение
+                welcome_message = config.chat_modes[chat_mode]["welcome_message"]
+
+                if isinstance(welcome_message, dict):
+                    welcome_text = welcome_message.get(user_language, welcome_message.get("en", "Welcome!"))
+                else:
+                    welcome_text = welcome_message
+
+                await update.message.reply_text(welcome_text, parse_mode=ParseMode.HTML)
+
         db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
         # in case of CancelledError
@@ -356,9 +372,25 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
     if use_new_dialog_timeout:
         if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
             db.start_new_dialog(user_id)
+
+            # Получаем локализованное welcome сообщение напрямую
+            user_language = db.get_user_attribute(user_id, "language") or "en"
             mode_name = config.chat_modes[chat_mode]['name']
+
+            # Отправляем уведомление о таймауте
             timeout_text = t(user_id, "dialog_timeout", mode_name=mode_name)
             await update.message.reply_text(timeout_text, parse_mode=ParseMode.HTML)
+
+            # Получаем и отправляем локализованное welcome сообщение
+            welcome_message = config.chat_modes[chat_mode]["welcome_message"]
+
+            if isinstance(welcome_message, dict):
+                welcome_text = welcome_message.get(user_language, welcome_message.get("en", "Welcome!"))
+            else:
+                welcome_text = welcome_message
+
+            await update.message.reply_text(welcome_text, parse_mode=ParseMode.HTML)
+
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
     buf = None
