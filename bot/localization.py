@@ -76,8 +76,8 @@ For example: "{bot_username} write a poem about Telegram" """,
         "usage_today": "📊 <b>Usage today:</b>\n",
         "messages_stat": "💬 Messages: {used}/{max}\n",
         "images_stat": "🎨 Images: {used}/{max}\n\n",
-        # "total_tokens": "🔤 <b>Total tokens:</b> {tokens}\n",
-        # "total_images": "🎨 <b>Total images:</b> {images}",
+        "total_tokens": "🔤 <b>Total tokens:</b> {tokens}\n",
+        "total_images": "🎨 <b>Total images:</b> {images}",
         "stats_up_to_date": "✅ Statistics up to date",
 
         # Premium и подписки
@@ -115,6 +115,12 @@ For example: "{bot_username} write a poem about Telegram" """,
         "select_language": "🌐 <b>Select language:</b>",
         "english": "🇺🇸 English",
         "russian": "🇷🇺 Русский",
+        "language_info_button": "ℹ️ Current language affects ChatGPT responses",
+        "language_already_set": "✅ <b>Language already set: English</b>\n\n💬 ChatGPT responds in English\n🔧 Bot interface in English\n\n💡 <i>You can ask any question right away!</i>",
+        "language_change_notification": "✅ <b>Language changed to English</b>\n\n💬 <b>Important change:</b> Now ChatGPT will automatically respond in English, even if you write in Russian or any other language!\n\n🔄 <b>What this means:</b>\n• You can write in any language\n• ChatGPT will always respond in English\n• Bot interface is also in English\n\n🆕 Started new dialog with English language settings.\n\n💡 <i>You can ask any question right away to test it!</i>",
+        "language_info_text": "ℹ️ <b>Language Settings Information</b>\n\n🌐 <b>What language setting affects:</b>\n• Bot interface (buttons, menus, notifications)\n• ChatGPT responses to your questions\n• System messages and errors\n\n🤖 <b>How ChatGPT works:</b>\n• Automatically responds in selected language\n• Understands questions in any language\n• Translates response to target language\n\n⚙️ <b>Current settings:</b>\n• Current language: English 🇺🇸\n• Change: /lang\n\n🔄 <b>Language switching:</b>\nWhen changing language, a new dialog automatically starts with updated settings.",
+        "back_to_language": "🔙 Back to language selection",
+        "how_language_works": "ℹ️ How do language settings work?",
     },
 
     "ru": {
@@ -190,8 +196,8 @@ For example: "{bot_username} write a poem about Telegram" """,
         "usage_today": "📊 <b>Использование сегодня:</b>\n",
         "messages_stat": "💬 Сообщения: {used}/{max}\n",
         "images_stat": "🎨 Изображения: {used}/{max}\n\n",
-        # "total_tokens": "🔤 <b>Всего токенов:</b> {tokens}\n",
-        # "total_images": "🎨 <b>Всего изображений:</b> {images}",
+        "total_tokens": "🔤 <b>Всего токенов:</b> {tokens}\n",
+        "total_images": "🎨 <b>Всего изображений:</b> {images}",
         "stats_up_to_date": "✅ Статистика актуальна",
 
         # Premium и подписки
@@ -229,6 +235,12 @@ For example: "{bot_username} write a poem about Telegram" """,
         "select_language": "🌐 <b>Выберите язык:</b>",
         "english": "🇺🇸 English",
         "russian": "🇷🇺 Русский",
+        "language_info_button": "ℹ️ Текущий язык влияет на ответы ChatGPT",
+        "language_already_set": "✅ <b>Язык уже установлен: Русский</b>\n\n💬 ChatGPT отвечает на русском языке\n🔧 Интерфейс бота на русском\n\n💡 <i>Можете сразу задать любой вопрос!</i>",
+        "language_change_notification": "✅ <b>Язык изменен на Русский</b>\n\n💬 <b>Важное изменение:</b> Теперь ChatGPT будет автоматически отвечать на русском языке, даже если вы напишете на английском или другом языке!\n\n🔄 <b>Что это означает:</b>\n• Вы можете писать на любом языке\n• ChatGPT всегда ответит на русском\n• Интерфейс бота тоже на русском\n\n🆕 Начат новый диалог с русскоязычными настройками.\n\n💡 <i>Можете сразу задать любой вопрос для проверки!</i>",
+        "language_info_text": "ℹ️ <b>Информация о языковых настройках</b>\n\n🌐 <b>Что влияет на выбор языка:</b>\n• Интерфейс бота (кнопки, меню, уведомления)\n• Ответы ChatGPT на ваши вопросы\n• Системные сообщения и ошибки\n\n🤖 <b>Как работает ChatGPT:</b>\n• Автоматически отвечает на выбранном языке\n• Понимает вопросы на любом языке\n• Переводит ответ на нужный язык\n\n⚙️ <b>Настройки:</b>\n• Текущий язык: Русский 🇷🇺\n• Изменить: /lang\n\n🔄 <b>Смена языка:</b>\nПри смене языка автоматически начинается новый диалог с обновленными настройками.",
+        "back_to_language": "🔙 Назад к выбору языка",
+        "how_language_works": "ℹ️ Как работают языковые настройки?",
     }
 }
 

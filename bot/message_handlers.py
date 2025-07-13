@@ -1,4 +1,4 @@
-# message_handlers.py - Обработчики сообщений с локализацией
+# message_handlers.py - С автоматическим определением языка
 import io
 import asyncio
 import base64
@@ -16,6 +16,40 @@ from localization import t
 user_semaphores = {}
 user_tasks = {}
 
+def get_language_instruction(user_id: int, db) -> str:
+    """Получить инструкцию о языке для ChatGPT"""
+    user_language = db.get_user_attribute(user_id, "language") or "en"
+
+    language_instructions = {
+        "ru": "Отвечай ТОЛЬКО на русском языке. Будь дружелюбным и полезным помощником. Все твои ответы должны быть на русском языке, независимо от языка вопроса.",
+        "en": "Respond ONLY in English. Be a friendly and helpful assistant. All your responses should be in English, regardless of the question's language.",
+    }
+
+    return language_instructions.get(user_language, language_instructions["en"])
+
+def enhance_dialog_messages_with_language(dialog_messages: list, user_id: int, db) -> list:
+    """Добавить языковую инструкцию к диалогу"""
+    if not dialog_messages:
+        dialog_messages = []
+
+    language_instruction = get_language_instruction(user_id, db)
+
+    # Создаем копию сообщений
+    enhanced_messages = []
+
+    # Добавляем языковую инструкцию как первое системное сообщение
+    enhanced_messages.append({
+        "user": [{"type": "text", "text": f"SYSTEM: {language_instruction}"}],
+        "bot": "Понял, буду отвечать на выбранном языке." if db.get_user_attribute(user_id, "language") == "ru" else "Understood, I will respond in the selected language.",
+        "date": datetime.now()
+    })
+
+    # Добавляем остальные сообщения
+    enhanced_messages.extend(dialog_messages)
+
+    return enhanced_messages
+
+# Остальные функции остаются без изменений...
 async def is_bot_mentioned(update: Update, context: CallbackContext):
     try:
         message = update.message
@@ -202,7 +236,10 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
                 await update.message.reply_text(t(user_id, "empty_message"), parse_mode=ParseMode.HTML)
                 return
 
+            # ВАЖНО: Добавляем языковую инструкцию к диалогу
             dialog_messages = db.get_dialog_messages(user_id, dialog_id=None)
+            enhanced_dialog_messages = enhance_dialog_messages_with_language(dialog_messages, user_id, db)
+
             parse_mode = {
                 "html": ParseMode.HTML,
                 "markdown": ParseMode.MARKDOWN
@@ -210,11 +247,11 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
 
             chatgpt_instance = openai_utils.ChatGPT(model=current_model)
             if config.enable_message_streaming:
-                gen = chatgpt_instance.send_message_stream(_message, dialog_messages=dialog_messages, chat_mode=chat_mode)
+                gen = chatgpt_instance.send_message_stream(_message, dialog_messages=enhanced_dialog_messages, chat_mode=chat_mode)
             else:
                 answer, (n_input_tokens, n_output_tokens), n_first_dialog_messages_removed = await chatgpt_instance.send_message(
                     _message,
-                    dialog_messages=dialog_messages,
+                    dialog_messages=enhanced_dialog_messages,
                     chat_mode=chat_mode
                 )
 
@@ -246,7 +283,7 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
 
                 prev_answer = answer
 
-            # update user data
+            # update user data (сохраняем оригинальные сообщения без языковой инструкции)
             new_dialog_message = {"user": [{"type": "text", "text": _message}], "bot": answer, "date": datetime.now()}
 
             db.set_dialog_messages(
@@ -301,6 +338,7 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
             if user_id in user_tasks:
                 del user_tasks[user_id]
 
+# Остальные функции без изменений, добавим только обновленную vision функцию
 async def _vision_message_handle_fn(update: Update, context: CallbackContext, db, use_new_dialog_timeout: bool = True):
     user_id = update.message.from_user.id
     current_model = db.get_user_attribute(user_id, "current_model")
@@ -345,7 +383,10 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
         # send typing action
         await update.message.chat.send_action(action="typing")
 
+        # ВАЖНО: Добавляем языковую инструкцию к диалогу
         dialog_messages = db.get_dialog_messages(user_id, dialog_id=None)
+        enhanced_dialog_messages = enhance_dialog_messages_with_language(dialog_messages, user_id, db)
+
         parse_mode = {"html": ParseMode.HTML, "markdown": ParseMode.MARKDOWN}[
             config.chat_modes[chat_mode]["parse_mode"]
         ]
@@ -354,7 +395,7 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
         if config.enable_message_streaming:
             gen = chatgpt_instance.send_vision_message_stream(
                 message,
-                dialog_messages=dialog_messages,
+                dialog_messages=enhanced_dialog_messages,
                 image_buffer=buf,
                 chat_mode=chat_mode,
             )
@@ -365,7 +406,7 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
                 n_first_dialog_messages_removed,
             ) = await chatgpt_instance.send_vision_message(
                 message,
-                dialog_messages=dialog_messages,
+                dialog_messages=enhanced_dialog_messages,
                 image_buffer=buf,
                 chat_mode=chat_mode,
             )
@@ -414,7 +455,7 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
 
             prev_answer = answer
 
-        # update user data
+        # update user data (сохраняем оригинальные сообщения)
         if buf is not None:
             base_image = base64.b64encode(buf.getvalue()).decode("utf-8")
             new_dialog_message = {"user": [
@@ -449,6 +490,7 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
         await update.message.reply_text(error_text)
         return
 
+# Остальные функции остаются без изменений...
 async def generate_image_handle_with_limits(update: Update, context: CallbackContext, db, message=None):
     """Генерация изображений с проверкой лимитов"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)

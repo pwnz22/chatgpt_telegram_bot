@@ -59,7 +59,9 @@ from subscription_handlers import (
 # Импорт обработчиков языков
 from language_handlers import (
     language_handle,
-    set_language_handle
+    set_language_handle,
+    language_info_callback_handle,
+    back_to_language_callback_handle
 )
 
 # Setup
@@ -141,6 +143,8 @@ def run_bot() -> None:
     # Обработчики языков
     application.add_handler(CommandHandler("lang", lambda u, c: language_handle(u, c, db), filters=user_filter))
     application.add_handler(CallbackQueryHandler(lambda u, c: set_language_handle(u, c, db), pattern="^set_language"))
+    application.add_handler(CallbackQueryHandler(lambda u, c: language_info_callback_handle(u, c, db), pattern="^language_info"))
+    application.add_handler(CallbackQueryHandler(lambda u, c: back_to_language_callback_handle(u, c, db), pattern="^back_to_language_selection"))
 
     # Обработчики сообщений
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, lambda u, c: message_handle(u, c, db)))
