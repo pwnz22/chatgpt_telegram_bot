@@ -1,9 +1,8 @@
+# database.py - Расширенная версия с подписками
 from typing import Optional, Any
-
 import pymongo
 import uuid
 from datetime import datetime
-
 import config
 
 
@@ -127,11 +126,12 @@ class Database:
             {"$set": {"messages": dialog_messages}}
         )
 
+    # ========================
+    # НОВЫЕ МЕТОДЫ ДЛЯ ПОДПИСОК
+    # ========================
 
     def get_user_subscription_status(self, user_id: int):
         """Получить статус подписки пользователя"""
-        from datetime import datetime
-
         subscription = self.db["subscriptions"].find_one({
             "user_id": user_id,
             "status": "active",
@@ -142,7 +142,6 @@ class Database:
 
     def add_daily_usage(self, user_id: int, usage_type: str, amount: int = 1):
         """Добавить использование за день"""
-        from datetime import datetime
         today = datetime.now().strftime("%Y-%m-%d")
 
         key = f"daily_usage.{today}.{usage_type}"
@@ -154,7 +153,6 @@ class Database:
 
     def get_daily_usage(self, user_id: int, usage_type: str) -> int:
         """Получить использование за сегодня"""
-        from datetime import datetime
         today = datetime.now().strftime("%Y-%m-%d")
 
         user = self.user_collection.find_one({"_id": user_id})
@@ -163,3 +161,73 @@ class Database:
 
         daily_usage = user.get("daily_usage", {})
         return daily_usage.get(today, {}).get(usage_type, 0)
+
+    def create_subscription(self, user_id: int, plan: str, duration_days: int):
+        """Создать новую подписку"""
+        subscription_id = str(uuid.uuid4())
+        expires_at = datetime.now() + datetime.timedelta(days=duration_days)
+
+        subscription = {
+            "_id": subscription_id,
+            "user_id": user_id,
+            "plan": plan,
+            "status": "active",
+            "created_at": datetime.now(),
+            "expires_at": expires_at,
+            "payment_id": "test_payment"
+        }
+
+        self.db["subscriptions"].insert_one(subscription)
+        return subscription_id
+
+    def record_payment(self, user_id: int, amount: float, currency: str, subscription_id: str):
+        """Записать платеж"""
+        payment_id = str(uuid.uuid4())
+
+        payment = {
+            "_id": payment_id,
+            "user_id": user_id,
+            "amount": amount,
+            "currency": currency,
+            "subscription_id": subscription_id,
+            "telegram_payment_id": "test_charge_id",
+            "created_at": datetime.now()
+        }
+
+        self.db["payments"].insert_one(payment)
+        return payment_id
+
+    def get_user_subscription_info(self, user_id: int):
+        """Получить информацию о подписке пользователя"""
+        return self.db["subscriptions"].find_one({
+            "user_id": user_id,
+            "status": "active",
+            "expires_at": {"$gt": datetime.now()}
+        })
+
+    def cancel_subscription(self, user_id: int):
+        """Отменить подписку"""
+        self.db["subscriptions"].update_one(
+            {
+                "user_id": user_id,
+                "status": "active"
+            },
+            {
+                "$set": {
+                    "status": "cancelled",
+                    "cancelled_at": datetime.now()
+                }
+            }
+        )
+
+    def get_subscription_stats(self):
+        """Получить статистику по подпискам (для админа)"""
+        total_subscriptions = self.db["subscriptions"].count_documents({"status": "active"})
+        total_revenue = list(self.db["payments"].aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]))
+
+        return {
+            "active_subscriptions": total_subscriptions,
+            "total_revenue": total_revenue[0]["total"] if total_revenue else 0
+        }

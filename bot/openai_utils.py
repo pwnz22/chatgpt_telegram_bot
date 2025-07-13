@@ -98,7 +98,7 @@ class ChatGPT:
                             n_first_dialog_messages_removed = 0
 
                             yield "not_finished", answer, (n_input_tokens, n_output_tokens), n_first_dialog_messages_removed
-                            
+
 
                 elif self.model == "text-davinci-003":
                     prompt = self._generate_prompt(message, dialog_messages, chat_mode)
@@ -190,7 +190,7 @@ class ChatGPT:
                     messages = self._generate_prompt_messages(
                         message, dialog_messages, chat_mode, image_buffer
                     )
-                    
+
                     r_gen = await openai.ChatCompletion.acreate(
                         model=self.model,
                         messages=messages,
@@ -254,15 +254,15 @@ class ChatGPT:
         prompt = config.chat_modes[chat_mode]["prompt_start"]
 
         messages = [{"role": "system", "content": prompt}]
-        
+
         for dialog_message in dialog_messages:
             messages.append({"role": "user", "content": dialog_message["user"]})
             messages.append({"role": "assistant", "content": dialog_message["bot"]})
-                    
+
         if image_buffer is not None:
             messages.append(
                 {
-                    "role": "user", 
+                    "role": "user",
                     "content": [
                         {
                             "type": "text",
@@ -271,14 +271,14 @@ class ChatGPT:
                         {
                             "type": "image_url",
                             "image_url" : {
-                              
+
                                 "url": f"data:image/jpeg;base64,{self._encode_image(image_buffer)}",
                                 "detail":"high"
                             }
                         }
                     ]
                 }
-                
+
             )
         else:
             messages.append({"role": "user", "content": message})
