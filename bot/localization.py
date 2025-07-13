@@ -123,6 +123,9 @@ For example: "{bot_username} write a poem about Telegram" """,
         "language_info_text": "ℹ️ <b>Language Settings Information</b>\n\n🌐 <b>What language setting affects:</b>\n• Bot interface (buttons, menus, notifications)\n• ChatGPT responses to your questions\n• System messages and errors\n\n🤖 <b>How ChatGPT works:</b>\n• Automatically responds in selected language\n• Understands questions in any language\n• Translates response to target language\n\n⚙️ <b>Current settings:</b>\n• Current language: English 🇺🇸\n• Change: /lang\n\n🔄 <b>Language switching:</b>\nWhen changing language, a new dialog automatically starts with updated settings.",
         "back_to_language": "🔙 Back to language selection",
         "how_language_works": "ℹ️ How do language settings work?",
+        "new_dialog_group_not_supported": "ℹ️ <i>New dialog command works only in private chats</i>",
+        "group_language_changed": "✅ <b>Group language changed to English</b>\n\n💬 Now ChatGPT will respond in English in this group.",
+        "group_language_already_set": "✅ <b>Group language already set: English</b>\n\n💬 ChatGPT responds in English in this group.",
     },
 
     "ru": {
@@ -245,6 +248,9 @@ For example: "{bot_username} write a poem about Telegram" """,
         "language_info_text": "ℹ️ <b>Информация о языковых настройках</b>\n\n🌐 <b>Что влияет на выбор языка:</b>\n• Интерфейс бота (кнопки, меню, уведомления)\n• Ответы ChatGPT на ваши вопросы\n• Системные сообщения и ошибки\n\n🤖 <b>Как работает ChatGPT:</b>\n• Автоматически отвечает на выбранном языке\n• Понимает вопросы на любом языке\n• Переводит ответ на нужный язык\n\n⚙️ <b>Настройки:</b>\n• Текущий язык: Русский 🇷🇺\n• Изменить: /lang\n\n🔄 <b>Смена языка:</b>\nПри смене языка автоматически начинается новый диалог с обновленными настройками.",
         "back_to_language": "🔙 Назад к выбору языка",
         "how_language_works": "ℹ️ Как работают языковые настройки?",
+        "new_dialog_group_not_supported": "ℹ️ <i>Команда нового диалога работает только в личных чатах</i>",
+        "group_language_changed": "✅ <b>Язык группы изменен на Русский</b>\n\n💬 Теперь ChatGPT будет отвечать на русском языке в этой группе.",
+        "group_language_already_set": "✅ <b>Язык группы уже установлен: Русский</b>\n\n💬 ChatGPT отвечает на русском языке в этой группе.",
     }
 }
 
@@ -253,10 +259,15 @@ class Localization:
         self.db = db
         self.default_language = "en"
 
-    def get_user_language(self, user_id: int) -> str:
-        """Получить язык пользователя"""
+    def get_user_language(self, user_id: int, chat_id: int = None) -> str:
+        """Получить язык пользователя или группы"""
         try:
-            lang = self.db.get_user_attribute(user_id, "language")
+            # Если указан chat_id и это группа
+            if chat_id and chat_id < 0:
+                lang = self.db.get_group_attribute(chat_id, "language")
+            else:
+                lang = self.db.get_user_attribute(user_id, "language")
+
             return lang if lang in TEXTS else self.default_language
         except:
             return self.default_language
@@ -266,9 +277,9 @@ class Localization:
         if language in TEXTS:
             self.db.set_user_attribute(user_id, "language", language)
 
-    def get_text(self, user_id: int, key: str, **kwargs) -> str:
-        """Получить локализованный текст"""
-        language = self.get_user_language(user_id)
+    def get_text(self, user_id: int, key: str, chat_id: int = None, **kwargs) -> str:
+        """Получить локализованный текст с поддержкой групп"""
+        language = self.get_user_language(user_id, chat_id)
 
         try:
             text = TEXTS[language][key]
@@ -302,8 +313,9 @@ def init_localization(db):
     localization = Localization(db)
     return localization
 
-def t(user_id: int, key: str, **kwargs) -> str:
-    """Быстрая функция для получения текста"""
+
+def t(user_id: int, key: str, chat_id: int = None, **kwargs) -> str:
+    """Быстрая функция для получения текста с поддержкой групп"""
     if localization is None:
         return f"[Localization not initialized: {key}]"
-    return localization.get_text(user_id, key, **kwargs)
+    return localization.get_text(user_id, key, chat_id, **kwargs)

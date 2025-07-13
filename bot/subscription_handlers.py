@@ -16,11 +16,13 @@ async def show_premium_plans_handle(update: Update, context: CallbackContext, db
         # Пришло через команду /premium
         await register_user_if_not_exists(update, context, update.message.from_user, db)
         user_id = update.message.from_user.id
+        chat_id = update.message.chat.id
         send_method = update.message.reply_text
     else:
         # Пришло через callback (кнопку)
         await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
         user_id = update.callback_query.from_user.id
+        chat_id = update.callback_query.message.chat.id
         send_method = update.callback_query.edit_message_text
         await update.callback_query.answer()
 
@@ -68,6 +70,7 @@ async def show_usage_stats_handle(update: Update, context: CallbackContext, db):
     await query.answer()
 
     user_id = query.from_user.id
+    chat_id = query.message.chat.id
     is_premium = db.get_user_subscription_status(user_id)
 
     daily_messages = db.get_daily_usage(user_id, "messages")

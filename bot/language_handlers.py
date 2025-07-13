@@ -19,7 +19,7 @@ async def language_handle(update: Update, context: CallbackContext, db):
 
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
-    text = t(user_id, "select_language")
+    text = t(user_id, "select_language", chat_id=chat_id)
 
     keyboard = []
 
@@ -44,7 +44,7 @@ async def language_handle(update: Update, context: CallbackContext, db):
         ])
 
     # Добавляем информационную кнопку
-    info_text = t(user_id, "language_info_button")
+    info_text = t(user_id, "language_info_button", chat_id=chat_id)
     keyboard.append([InlineKeyboardButton(info_text, callback_data="language_info")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -56,11 +56,12 @@ async def show_language_info(update: Update, context: CallbackContext, db):
     await query.answer()
 
     user_id = query.from_user.id
+    chat_id = query.message.chat.id
 
-    info_text = t(user_id, "language_info_text")
+    info_text = t(user_id, "language_info_text", chat_id=chat_id)
 
     # Добавляем кнопку "Назад"
-    back_text = t(user_id, "back_to_language")
+    back_text = t(user_id, "back_to_language", chat_id=chat_id)
     keyboard = [[InlineKeyboardButton(back_text, callback_data="back_to_language_selection")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -75,7 +76,7 @@ async def back_to_language_selection(update: Update, context: CallbackContext, d
     chat_id = query.message.chat.id
 
     # Повторно показываем меню выбора языка
-    text = t(user_id, "select_language")
+    text = t(user_id, "select_language", chat_id=chat_id)
 
     keyboard = []
 
@@ -100,7 +101,7 @@ async def back_to_language_selection(update: Update, context: CallbackContext, d
         ])
 
     # Добавляем информационную кнопку
-    info_text = t(user_id, "how_language_works")
+    info_text = t(user_id, "how_language_works", chat_id=chat_id)
     keyboard.append([InlineKeyboardButton(info_text, callback_data="language_info")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -136,8 +137,8 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
         db.start_new_dialog(user_id)
 
         # Показываем приветствие на выбранном языке
-        reply_text = t(user_id, "start_greeting")
-        reply_text += t(user_id, "help_message")
+        reply_text = t(user_id, "start_greeting", chat_id=chat_id)
+        reply_text += t(user_id, "help_message", chat_id=chat_id)
 
         await query.edit_message_text(reply_text, parse_mode=ParseMode.HTML)
 
@@ -148,7 +149,11 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
     # Если язык уже был установлен ранее
     if old_language == language:
         # Язык не изменился, показываем текущий статус
-        status_text = t(user_id, "language_already_set")
+        if chat_id < 0:  # Группа
+            status_text = t(user_id, "group_language_already_set", chat_id=chat_id)
+        else:  # Личный чат
+            status_text = t(user_id, "language_already_set", chat_id=chat_id)
+
         await query.edit_message_text(status_text, parse_mode=ParseMode.HTML)
         return
 
@@ -157,7 +162,11 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
         db.start_new_dialog(user_id)
 
     # Отправляем уведомление на новом языке
-    confirmation_text = t(user_id, "language_change_notification")
+    if chat_id < 0:  # Группа
+        confirmation_text = t(user_id, "group_language_changed", chat_id=chat_id)
+    else:  # Личный чат
+        confirmation_text = t(user_id, "language_change_notification", chat_id=chat_id)
+
     await query.edit_message_text(confirmation_text, parse_mode=ParseMode.HTML)
 
 # Обработчик для callback "language_info"
@@ -174,15 +183,15 @@ async def back_to_language_callback_handle(update: Update, context: CallbackCont
 async def show_chat_modes_handle_from_callback(query, context: CallbackContext, db):
     """Показать режимы чата после выбора языка"""
     user_id = query.from_user.id
-    chat_id = query.message.chat_id
+    chat_id = query.message.chat.id
 
-    # Используем обновленную функцию с правильными параметрами
+    # Используем ту же логику, что и в basic_handlers.py
     from basic_handlers import get_chat_mode_menu
-    text, reply_markup = get_chat_mode_menu(0, user_id, chat_id, db)
+    text, reply_markup = get_chat_mode_menu(0, user_id, chat_id=chat_id, db=db)
 
     # Отправляем новое сообщение вместо редактирования
     await context.bot.send_message(
-        chat_id=chat_id,
+        chat_id=query.message.chat_id,
         text=text,
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML

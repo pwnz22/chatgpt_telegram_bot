@@ -23,6 +23,11 @@ image_size = config_yaml.get("image_size", "512x512")
 n_chat_modes_per_page = config_yaml.get("n_chat_modes_per_page", 5)
 mongodb_uri = f"mongodb://mongo:{config_env['MONGODB_PORT']}"
 
+# Models configuration from env
+available_text_models = config_env.get('AVAILABLE_TEXT_MODELS', 'gpt-3.5-turbo').split(',')
+premium_models = config_env.get('PREMIUM_MODELS', 'gpt-4,gpt-4o,gpt-4-vision-preview').split(',')
+default_model = config_env.get('DEFAULT_MODEL', 'gpt-3.5-turbo')
+
 # chat_modes
 with open(config_dir / "chat_modes.yml", 'r') as f:
     chat_modes = yaml.safe_load(f)
@@ -30,6 +35,9 @@ with open(config_dir / "chat_modes.yml", 'r') as f:
 # models
 with open(config_dir / "models.yml", 'r') as f:
     models = yaml.safe_load(f)
+
+# Override available_text_models from env
+models["available_text_models"] = available_text_models
 
 # files
 help_group_chat_video_path = Path(__file__).parent.parent.resolve() / "static" / "help_group_chat.mp4"

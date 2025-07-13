@@ -30,7 +30,7 @@ async def register_user_if_not_exists(update: Update, context: CallbackContext, 
         db.start_new_dialog(user.id, chat_id)
 
     if db.get_user_attribute(user.id, "current_model") is None:
-        db.set_user_attribute(user.id, "current_model", config.models["available_text_models"][0])
+        db.set_user_attribute(user.id, "current_model", config.default_model)  # Используем из env
 
     # back compatibility for n_used_tokens field
     n_used_tokens = db.get_user_attribute(user.id, "n_used_tokens")

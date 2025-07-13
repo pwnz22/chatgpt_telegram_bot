@@ -7,6 +7,8 @@ from telegram.constants import ParseMode
 from utils import register_user_if_not_exists
 from localization import t
 
+# Заменить в balance_handlers.py функцию с исправленными вызовами t()
+
 async def show_balance_handle(update: Update, context: CallbackContext, db):
     """Показать баланс и статистику с учетом подписки"""
 
@@ -15,11 +17,13 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
         # Пришло через команду /balance
         await register_user_if_not_exists(update, context, update.message.from_user, db)
         user_id = update.message.from_user.id
+        chat_id = update.message.chat.id
         send_method = update.message.reply_text
     else:
         # Пришло через callback (кнопку "Обновить статистику")
         await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
         user_id = update.callback_query.from_user.id
+        chat_id = update.callback_query.message.chat.id
         send_method = update.callback_query.edit_message_text
         await update.callback_query.answer()
 
@@ -36,7 +40,7 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
     max_images = 50 if is_premium else 2
 
     # Основная статистика
-    text = t(user_id, "balance_title")
+    text = t(user_id, "balance_title", chat_id=chat_id)
 
     # Статус подписки
     if is_premium:
@@ -46,37 +50,25 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
             "expires_at": {"$gt": datetime.now()}
         })
         date_str = subscription['expires_at'].strftime('%d.%m.%Y')
-        text += t(user_id, "premium_until", date=date_str)
+        text += t(user_id, "premium_until", chat_id=chat_id, date=date_str)
     else:
-        text += t(user_id, "free_plan")
+        text += t(user_id, "free_plan", chat_id=chat_id)
 
     # Использование за сегодня
-    text += t(user_id, "usage_today")
-    text += t(user_id, "messages_stat", used=daily_messages, max=max_messages)
-    text += t(user_id, "images_stat", used=daily_images, max=max_images)
-
-    # Общая статистика (упрощенная версия)
-    # n_used_tokens_dict = db.get_user_attribute(user_id, "n_used_tokens")
-    # n_generated_images = db.get_user_attribute(user_id, "n_generated_images")
-
-    # total_tokens = 0
-    # for model_data in n_used_tokens_dict.values():
-    #     if isinstance(model_data, dict):
-    #         total_tokens += model_data.get("n_input_tokens", 0) + model_data.get("n_output_tokens", 0)
-
-    # text += t(user_id, "total_tokens", tokens=total_tokens)
-    # text += t(user_id, "total_images", images=n_generated_images)
+    text += t(user_id, "usage_today", chat_id=chat_id)
+    text += t(user_id, "messages_stat", chat_id=chat_id, used=daily_messages, max=max_messages)
+    text += t(user_id, "images_stat", chat_id=chat_id, used=daily_images, max=max_images)
 
     # Кнопки
     keyboard = []
     if not is_premium:
         keyboard.append([InlineKeyboardButton(
-            t(user_id, "buy_premium"),
+            t(user_id, "buy_premium", chat_id=chat_id),
             callback_data="show_premium_plans"
         )])
 
     keyboard.append([InlineKeyboardButton(
-        t(user_id, "refresh_stats"),
+        t(user_id, "refresh_stats", chat_id=chat_id),
         callback_data="refresh_balance"
     )])
 
@@ -88,7 +80,7 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
         if str(e).startswith("Message is not modified"):
             # Сообщение не изменилось, просто ответим на callback
             if hasattr(update, 'callback_query') and update.callback_query:
-                await update.callback_query.answer(t(user_id, "stats_up_to_date"))
+                await update.callback_query.answer(t(user_id, "stats_up_to_date", chat_id=chat_id))
         else:
             # Другая ошибка - пробрасываем дальше
             raise

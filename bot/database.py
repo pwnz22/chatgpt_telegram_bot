@@ -41,7 +41,7 @@ class Database:
             "_id": group_id,
             "title": group_title,
             "current_chat_mode": "assistant",
-            "current_model": config.models["available_text_models"][0],
+            "current_model": config.default_model,  # Используем из env
             "language": "en",  # Язык по умолчанию
             "created_at": datetime.now(),
             "last_interaction": datetime.now()
@@ -61,7 +61,7 @@ class Database:
             # Значения по умолчанию
             defaults = {
                 "current_chat_mode": "assistant",
-                "current_model": config.models["available_text_models"][0],
+                "current_model": config.default_model,  # Используем из env
                 "language": "en"
             }
             return defaults.get(key, None)
@@ -104,37 +104,37 @@ class Database:
             self.set_user_attribute(user_id, "current_chat_mode", chat_mode)
 
     def add_new_user(
-            self,
-            user_id: int,
-            chat_id: int,
-            username: str = "",
-            first_name: str = "",
-            last_name: str = "",
-        ):
-            user_dict = {
-                "_id": user_id,
-                "chat_id": chat_id,
+        self,
+        user_id: int,
+        chat_id: int,
+        username: str = "",
+        first_name: str = "",
+        last_name: str = "",
+    ):
+        user_dict = {
+            "_id": user_id,
+            "chat_id": chat_id,
 
-                "username": username,
-                "first_name": first_name,
-                "last_name": last_name,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name,
 
-                "last_interaction": datetime.now(),
-                "first_seen": datetime.now(),
+            "last_interaction": datetime.now(),
+            "first_seen": datetime.now(),
 
-                "current_dialog_id": None,
-                "current_chat_mode": "assistant",
-                "current_model": config.models["available_text_models"][0],
-                "language": None,
+            "current_dialog_id": None,
+            "current_chat_mode": "assistant",
+            "current_model": config.default_model,  # Используем из env
+            "language": None,
 
-                "n_used_tokens": {},
+            "n_used_tokens": {},
 
-                "n_generated_images": 0,
-                "n_transcribed_seconds": 0.0  # voice message transcription
-            }
+            "n_generated_images": 0,
+            "n_transcribed_seconds": 0.0  # voice message transcription
+        }
 
-            if not self.check_if_user_exists(user_id):
-                self.user_collection.insert_one(user_dict)
+        if not self.check_if_user_exists(user_id):
+            self.user_collection.insert_one(user_dict)
 
     def start_new_dialog(self, user_id: int, chat_id: int = None):
         self.check_if_user_exists(user_id, raise_exception=True)
