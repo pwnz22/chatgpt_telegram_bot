@@ -33,3 +33,5 @@ with open(config_dir / "models.yml", 'r') as f:
 
 # files
 help_group_chat_video_path = Path(__file__).parent.parent.resolve() / "static" / "help_group_chat.mp4"
+
+PAYMENT_PROVIDER_TOKEN = config_yaml.get("payment_provider_token", "381764678:TEST:123456")

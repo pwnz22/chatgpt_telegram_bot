@@ -128,3 +128,38 @@ class Database:
         )
 
 
+    def get_user_subscription_status(self, user_id: int):
+        """Получить статус подписки пользователя"""
+        from datetime import datetime
+
+        subscription = self.db["subscriptions"].find_one({
+            "user_id": user_id,
+            "status": "active",
+            "expires_at": {"$gt": datetime.now()}
+        })
+
+        return subscription is not None
+
+    def add_daily_usage(self, user_id: int, usage_type: str, amount: int = 1):
+        """Добавить использование за день"""
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        key = f"daily_usage.{today}.{usage_type}"
+        self.user_collection.update_one(
+            {"_id": user_id},
+            {"$inc": {key: amount}},
+            upsert=True
+        )
+
+    def get_daily_usage(self, user_id: int, usage_type: str) -> int:
+        """Получить использование за сегодня"""
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        user = self.user_collection.find_one({"_id": user_id})
+        if not user:
+            return 0
+
+        daily_usage = user.get("daily_usage", {})
+        return daily_usage.get(today, {}).get(usage_type, 0)
