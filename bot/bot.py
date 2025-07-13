@@ -23,7 +23,7 @@ import database
 from utils import split_text_into_chunks
 
 # Инициализация локализации
-from localization import init_localization
+from localization import init_localization, TEXTS
 
 # Импорты обработчиков
 from basic_handlers import (
@@ -98,17 +98,38 @@ async def error_handle(update: Update, context: CallbackContext) -> None:
         await context.bot.send_message(update.effective_chat.id, "Some error in error handler")
 
 async def post_init(application: Application):
-    """Инициализация команд бота"""
-    await application.bot.set_my_commands([
-        BotCommand("/new", "Start new dialog"),
-        BotCommand("/mode", "Select chat mode"),
-        BotCommand("/retry", "Re-generate response for previous query"),
-        BotCommand("/balance", "Show balance"),
-        BotCommand("/premium", "Premium subscription"),
-        BotCommand("/settings", "Show settings"),
-        BotCommand("/lang", "Change language"),
-        BotCommand("/help", "Show help message"),
-    ])
+    """Инициализация команд бота с локализацией"""
+
+    # Получаем команды из системы локализации
+    def get_commands_for_language(lang_code):
+        texts = TEXTS.get(lang_code, TEXTS["en"])
+        return [
+            BotCommand("/new", texts["command_new"]),
+            BotCommand("/mode", texts["command_mode"]),
+            BotCommand("/retry", texts["command_retry"]),
+            BotCommand("/balance", texts["command_balance"]),
+            BotCommand("/premium", texts["command_premium"]),
+            BotCommand("/settings", texts["command_settings"]),
+            BotCommand("/lang", texts["command_lang"]),
+            BotCommand("/help", texts["command_help"]),
+        ]
+
+    # Устанавливаем команды для разных языков
+    try:
+        en_commands = get_commands_for_language("en")
+        ru_commands = get_commands_for_language("ru")
+
+        await application.bot.set_my_commands(en_commands, language_code="en")
+        await application.bot.set_my_commands(ru_commands, language_code="ru")
+
+        # Команды по умолчанию (для пользователей без установленного языка)
+        await application.bot.set_my_commands(en_commands)
+
+        logger.info("Bot commands set successfully for multiple languages")
+    except Exception as e:
+        logger.error(f"Failed to set bot commands: {e}")
+        # Устанавливаем хотя бы базовые команды
+        await application.bot.set_my_commands(get_commands_for_language("en"))
 
 def run_bot() -> None:
     """Запуск бота"""

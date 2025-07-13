@@ -1,9 +1,19 @@
-# localization.py - Система локализации с поддержкой групп
+# localization.py - Система локализации с поддержкой групп и команд
 from typing import Dict, Any
 
 # Тексты на разных языках
 TEXTS = {
     "en": {
+        # Команды бота
+        "command_new": "Start new dialog",
+        "command_mode": "Select chat mode",
+        "command_retry": "Re-generate response for previous query",
+        "command_balance": "Show balance",
+        "command_premium": "Premium subscription",
+        "command_settings": "Show settings",
+        "command_lang": "Change language",
+        "command_help": "Show help message",
+
         # Команды и помощь
         "help_message": """Commands:
 ⚪ /retry – Regenerate last bot answer
@@ -129,6 +139,16 @@ For example: "{bot_username} write a poem about Telegram" """,
     },
 
     "ru": {
+        # Команды бота
+        "command_new": "Начать новый диалог",
+        "command_mode": "Выбрать режим чата",
+        "command_retry": "Повторить ответ на предыдущий запрос",
+        "command_balance": "Показать баланс",
+        "command_premium": "Premium подписка",
+        "command_settings": "Показать настройки",
+        "command_lang": "Изменить язык",
+        "command_help": "Показать справку",
+
         # Команды и помощь
         "help_message": """Команды:
 ⚪ /retry – Повторить последний ответ бота

@@ -1,10 +1,10 @@
 # language_handlers.py - Обработчики языков с локализованными текстами (исправленная версия)
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, BotCommandScopeChat
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 from datetime import datetime
-from utils import register_user_if_not_exists, register_group_if_not_exists
-from localization import t
+from utils import register_user_if_not_exists
+from localization import t, TEXTS
 
 async def language_handle(update: Update, context: CallbackContext, db):
     """Показать меню выбора языка с поддержкой групп"""
@@ -131,6 +131,9 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
         db.set_user_attribute(user_id, "language", language)
         db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
+        # Обновляем команды для пользователя
+        await update_user_commands(context, user_id, language)
+
     # Если это первый выбор языка для личного чата
     if chat_id > 0 and old_language is None:
         # Начинаем новый диалог для применения языковых изменений
@@ -196,3 +199,27 @@ async def show_chat_modes_handle_from_callback(query, context: CallbackContext, 
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
+
+async def update_user_commands(context: CallbackContext, user_id: int, language: str):
+    """Обновить команды бота для конкретного пользователя"""
+
+    # Получаем тексты команд из системы локализации
+    texts = TEXTS.get(language, TEXTS["en"])
+    commands = [
+        BotCommand("/new", texts["command_new"]),
+        BotCommand("/mode", texts["command_mode"]),
+        BotCommand("/retry", texts["command_retry"]),
+        BotCommand("/balance", texts["command_balance"]),
+        BotCommand("/premium", texts["command_premium"]),
+        BotCommand("/settings", texts["command_settings"]),
+        BotCommand("/lang", texts["command_lang"]),
+        BotCommand("/help", texts["command_help"]),
+    ]
+
+    try:
+        # Telegram API может поддерживать персональные команды через scope
+        scope = BotCommandScopeChat(chat_id=user_id)
+        await context.bot.set_my_commands(commands, scope=scope)
+    except Exception as e:
+        # Если не удалось обновить для конкретного пользователя, игнорируем
+        pass

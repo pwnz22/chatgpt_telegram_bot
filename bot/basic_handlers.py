@@ -201,6 +201,14 @@ async def set_chat_mode_handle(update: Update, context: CallbackContext, db):
         db.start_new_dialog(user_id)
         user_language = db.get_user_attribute(user_id, "language") or "en"
 
+    # Сначала обновляем меню с новой отметкой
+    try:
+        text, reply_markup = get_chat_mode_menu(0, user_id, chat_id=chat_id, db=db)
+        await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+    except telegram.error.BadRequest as e:
+        if str(e).startswith("Message is not modified"):
+            pass
+
     # Получаем локализованное welcome сообщение
     welcome_message = config.chat_modes[chat_mode]["welcome_message"]
 
@@ -209,8 +217,9 @@ async def set_chat_mode_handle(update: Update, context: CallbackContext, db):
     else:
         welcome_text = welcome_message
 
+    # Отправляем welcome сообщение как отдельное сообщение
     await context.bot.send_message(
-        update.callback_query.message.chat.id,
+        chat_id,
         welcome_text,
         parse_mode=ParseMode.HTML
     )
