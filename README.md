@@ -1,36 +1,49 @@
-# ChatGPT Telegram Bot: **GPT-4. Fast. No daily limits. Special chat modes**
+# ChatGPT Telegram Bot: **GPT-4. Быстро. Без дневных лимитов. Специальные режимы чата**
 
-<div align="center">
-<img src="https://raw.githubusercontent.com/karfly/chatgpt_telegram_bot/main/static/header.png" align="center" style="width: 100%" />
-</div>
+Все мы любим [chat.openai.com](https://chat.openai.com), но... Он УЖАСНО медленный, имеет дневные лимиты и доступен только через архаичный веб-интерфейс.
 
-<br>
+Этот репозиторий представляет ChatGPT, воссозданный как Telegram Bot. **И он работает отлично.**
 
-<p align="center">
-<a href="https://t.me/chatgpt_karfly_bot?start=source=github" alt="Run Telegram Bot shield"><img src="https://img.shields.io/badge/RUN-Telegram%20Bot-blue?logo=data:image/svg+xml;base64,PHN2ZyBpZD0iTGl2ZWxsb18xIiBkYXRhLW5hbWU9IkxpdmVsbG8gMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmlld0JveD0iMCAwIDI0MCAyNDAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0ibGluZWFyLWdyYWRpZW50IiB4MT0iMTIwIiB5MT0iMjQwIiB4Mj0iMTIwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMWQ5M2QyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzhiMGUzIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRpdGxlPlRlbGVncmFtX2xvZ288L3RpdGxlPjxjaXJjbGUgY3g9IjEyMCIgY3k9IjEyMCIgcj0iMTIwIiBmaWxsPSJ1cmwoI2xpbmVhci1ncmFkaWVudCkiLz48cGF0aCBkPSJNODEuMjI5LDEyOC43NzJsMTQuMjM3LDM5LjQwNnMxLjc4LDMuNjg3LDMuNjg2LDMuNjg3LDMwLjI1NS0yOS40OTIsMzAuMjU1LTI5LjQ5MmwzMS41MjUtNjAuODlMODEuNzM3LDExOC42WiIgZmlsbD0iI2M4ZGFlYSIvPjxwYXRoIGQ9Ik0xMDAuMTA2LDEzOC44NzhsLTIuNzMzLDI5LjA0NnMtMS4xNDQsOC45LDcuNzU0LDAsMTcuNDE1LTE1Ljc2MywxNy40MTUtMTUuNzYzIiBmaWxsPSIjYTljNmQ4Ii8+PHBhdGggZD0iTTgxLjQ4NiwxMzAuMTc4LDUyLjIsMTIwLjYzNnMtMy41LTEuNDItMi4zNzMtNC42NGMuMjMyLS42NjQuNy0xLjIyOSwyLjEtMi4yLDYuNDg5LTQuNTIzLDEyMC4xMDYtNDUuMzYsMTIwLjEwNi00NS4zNnMzLjIwOC0xLjA4MSw1LjEtLjM2MmEyLjc2NiwyLjc2NiwwLDAsMSwxLjg4NSwyLjA1NSw5LjM1Nyw5LjM1NywwLDAsMSwuMjU0LDIuNTg1Yy0uMDA5Ljc1Mi0uMSwxLjQ0OS0uMTY5LDIuNTQyLS42OTIsMTEuMTY1LTIxLjQsOTQuNDkzLTIxLjQsOTQuNDkzcy0xLjIzOSw0Ljg3Ni01LjY3OCw1LjA0M0E4LjEzLDguMTMsMCwwLDEsMTQ2LjEsMTcyLjVjLTguNzExLTcuNDkzLTM4LjgxOS0yNy43MjctNDUuNDcyLTMyLjE3N2ExLjI3LDEuMjcsMCwwLDEtLjU0Ni0uOWMtLjA5My0uNDY5LjQxNy0xLjA1LjQxNy0xLjA1czUyLjQyNi00Ni42LDUzLjgyMS01MS40OTJjLjEwOC0uMzc5LS4zLS41NjYtLjg0OC0uNC0zLjQ4MiwxLjI4MS02My44NDQsMzkuNC03MC41MDYsNDMuNjA3QTMuMjEsMy4yMSwwLDAsMSw4MS40ODYsMTMwLjE3OFoiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" width="230"/></a>
-</p>
+Вы можете развернуть своего собственного бота или использовать наш: [@jadvebot](https://t.me/jadvebot) (Наш сайт: https://jadve.com)
 
+## 📋 Содержание
 
-We all love [chat.openai.com](https://chat.openai.com), but... It's TERRIBLY laggy, has daily limits, and is only accessible through an archaic web interface.
+- [🌟 Ключевые возможности](#-ключевые-возможности)
+- [🔧 Технические особенности](#-технические-особенности)
+- [👥 Поддержка групп](#-поддержка-групп)
+- [🌐 Многоязычность](#-многоязычность)
+- [💎 Premium подписка](#-premium-подписка)
+- [🎭 Режимы чата](#-режимы-чата)
+- [🤖 Поддерживаемые модели ИИ](#-поддерживаемые-модели-ии)
+- [📱 Команды бота](#-команды-бота)
+- [🆕 История обновлений](#-история-обновлений)
+- [⚙️ Установка через Docker](#️-установка-через-docker)
+- [🤝 Участники проекта](#-участники-проекта)
+- [❤️ Топ пожертвования](#️-топ-пожертвования)
 
-This repo is ChatGPT re-created as Telegram Bot. **And it works great.**
+---
 
-You can deploy your own bot, or use mine: [@jadvebot](https://t.me/jadvebot) (Our web: https://jadve.com)
+## 🌟 Ключевые возможности
 
-## Features
-- Low latency replies (it usually takes about 3-5 seconds)
-- No request limits
-- Message streaming (watch demo)
-- GPT-4 and GPT-4 Turbo support
-- GPT-4 Vision support
-- Group Chat support (/help_group_chat to get instructions)
-- DALLE 2 (choose 👩‍🎨 Artist mode to generate images)
-- Voice message recognition
-- Code highlighting
-- 15 special chat modes: 👩🏼‍🎓 Assistant, 👩🏼‍💻 Code Assistant, 👩‍🎨 Artist, 🧠 Psychologist, 🚀 Elon Musk and other. You can easily create your own chat modes by editing `config/chat_modes.yml`
-- Support of [ChatGPT API](https://platform.openai.com/docs/guides/chat/introduction)
-- List of allowed Telegram users
-- Track $ balance spent on OpenAI API
+### ⚡ Производительность
+
+- **Низкая задержка ответов** (обычно 3-5 секунд)
+- **Без лимитов запросов** (в Premium версии)
+- **Потоковая передача сообщений** (смотрите демо)
+- **Параллельная обработка** запросов
+
+### 🎨 Создание контента
+
+- **Генерация изображений** с помощью DALLE 2
+- **Распознавание голосовых сообщений** через Whisper API
+- **Обработка изображений** с GPT-4 Vision
+- **15 специальных режимов чата**
+
+### 👥 Социальные функции
+
+- **Поддержка групповых чатов** с отдельными настройками
+- **Многопользовательская система** с ролями доступа
+- **Индивидуальные настройки** для каждого пользователя
 
 <p align="center">
   <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYmM2ZWVjY2M4NWQ3ZThkYmQ3MDhmMTEzZGUwOGFmOThlMDIzZGM4YiZjdD1n/unx907h7GSiLAugzVX/giphy.gif" />
@@ -38,76 +51,312 @@ You can deploy your own bot, or use mine: [@jadvebot](https://t.me/jadvebot) (Ou
 
 ---
 
-## News
-- *21 Apr 2023*:
-    - DALLE 2 support
-    - Group Chat support (/help_group_chat to get instructions)
-    - 10 new hot chat modes and updated chat mode menu with pagination: 🇬🇧 English Tutor, 🧠 Psychologist, 🚀 Elon Musk, 📊 SQL Assistant and other.
-- *24 Mar 2023*: GPT-4 support. Run `/settings` command to choose model
-- *15 Mar 2023*: Added message streaming. Now you don't have to wait until the whole message is ready, it's streamed to Telegram part-by-part (watch demo)
-- *9 Mar 2023*: Now you can easily create your own Chat Modes by editing `config/chat_modes.yml`
-- *8 Mar 2023*: Added voice message recognition with [OpenAI Whisper API](https://openai.com/blog/introducing-chatgpt-and-whisper-apis). Record a voice message and ChatGPT will answer you!
-- *2 Mar 2023*: Added support of [ChatGPT API](https://platform.openai.com/docs/guides/chat/introduction).
-- *1 Aug 2023*: Added OpenAI API Base to config (useful while using OpenAI-compatible API like [LocalAI](https://github.com/go-skynet/LocalAI))
-- *15 Nov 2023*: Added support of [GPT-4 Turbo](https://help.openai.com/en/articles/8555510-gpt-4-turbo)
-- *2 Apt 2024*: Added [GPT-4 Vision](https://platform.openai.com/docs/guides/vision) support
+## 🔧 Технические особенности
 
-## Bot commands
-- `/retry` – Regenerate last bot answer
-- `/new` – Start new dialog
-- `/mode` – Select chat mode
-- `/balance` – Show balance
-- `/settings` – Show settings
-- `/help` – Show help
+### 🏗️ Архитектура
 
-## Setup
-1. Get your [OpenAI API](https://openai.com/api/) key
+- **Модульная структура** кода с четким разделением функций
+- **Асинхронное программирование** для высокой производительности
+- **MongoDB** для надежного хранения данных
+- **Docker** для простого развертывания
 
-2. Get your Telegram bot token from [@BotFather](https://t.me/BotFather)
+### 🛡️ Безопасность и контроль
 
-3. Edit `config/config.example.yml` to set your tokens and run 2 commands below (*if you're advanced user, you can also edit* `config/config.example.env`):
-    ```bash
-    mv config/config.example.yml config/config.yml
-    mv config/config.example.env config/config.env
-    ```
+- **Система лимитов** для предотвращения злоупотреблений
+- **Контроль доступа** по username и user ID
+- **Модерация контента** через OpenAI API
+- **Защита от спама** с семафорами
 
-4. 🔥 And now **run**:
-    ```bash
-    docker-compose --env-file config/config.env up --build
-    ```
+### 📊 Мониторинг и аналитика
 
-## ❤️ Top donations
-You can be in this list:
+- **Отслеживание использования токенов** OpenAI API
+- **Статистика по пользователям** и группам
+- **Система подписок** с автоматическим продлением
+- **Детальные логи** всех операций
 
-1. [LilRocco](https://t.me/LilRocco). Donation: **11000$** (!!!)
+---
 
-1. [Mr V](https://t.me/mr_v_v_v). Donation **250$**
+## 👥 Поддержка групп
 
-1. [unexpectedsunday](https://t.me/unexpectedsunday). Donation: **150$**
+### 🎯 Возможности для групп
 
-1. [Sem](https://t.me/sembrestels). Donation: **100$**
+- **Раздельные настройки** для каждой группы
+- **Упоминание бота** через @ или ответ на сообщение
+- **Администрирование** с минимальными правами
+- **Общие режимы чата** для всех участников
 
-1. [Miksolo](https://t.me/Miksolo). Donation: **81$**
+### 📋 Инструкция по добавлению в группу
 
-    *Message:* Thank you. Using this docker container every day! Actually created the same project but its good to see that this one is being supported often. Will continue using it! Good architecture choices made in the code 💪!
+1. Добавьте бота в групповой чат
+2. Сделайте его **администратором** (только право видеть сообщения)
+3. Готово! Теперь группа может использовать все функции
 
-1. [Ryo](https://t.me/ryokihara). Donation: **80$**
+Для получения ответа в группе упомяните бота: `@ваш_бот напиши стихотворение о Telegram`
 
-1. [Ilias Ism](https://twitter.com/illyism). Donation: **69$**
+---
 
-    *Message:* I wanted to thank you for your amazing code! It helped me start my own Telegram ChatGPT bot and add a bunch of cool features. I really appreciate your hard work on this project. For anyone interested in trying my bot, feel free to check it out here: [magicbuddy.chat](https://magicbuddy.chat) 🤖 Thanks again! 😊
+## 🌐 Многоязычность
 
-1. [Sebastian](https://t.me/dell1503). Donation: **55$**
+### 🗣️ Поддерживаемые языки
 
-1. [Alexander Zimin](https://t.me/azimin). Donation: **50$**
+- **🇺🇸 Английский** - полная поддержка
+- **🇷🇺 Русский** - полная поддержка
+- **Автоматическое определение** языка интерфейса
+- **Раздельные настройки** для групп и личных чатов
 
-1. [Kbaji20](https://t.me/Kbaji20). Donation: **30$**
+### ⚙️ Возможности локализации
 
-1. [Hans Blinken](https://t.me/hblink). Donation: **10$**
+- **Интерфейс бота** полностью переведен
+- **ChatGPT отвечает** на выбранном языке
+- **Команды бота** локализованы
+- **Легкое переключение** через команду `/lang`
 
-## Contributors
-- Main contributor: @karfly
-- [Jadve AI](https://jadve.com).
+---
 
-## References
-1. [*Build ChatGPT from GPT-3*](https://learnprompting.org/docs/applied_prompting/build_chatgpt)
+## 💎 Premium подписка
+
+### ✨ Преимущества Premium
+
+| Функция                   | Бесплатно | Premium |
+| ------------------------- | --------- | ------- |
+| 💬 Сообщения в день       | 5         | 1000    |
+| 🎨 Изображения в день     | 2         | 50      |
+| 🤖 Доступ к GPT-4         | ❌        | ✅      |
+| 🔍 GPT-4 Vision           | ❌        | ✅      |
+| ⚡ Приоритетная обработка | ❌        | ✅      |
+
+### 💰 Тарифные планы
+
+- **🗓 Месячная подписка** - 25 TJS
+- **📅 Годовая подписка** - 200 TJS (экономия 40%)
+- **🔄 Автоматическое продление** подписки
+- **📊 Детальная статистика** использования
+
+---
+
+## 🎭 Режимы чата
+
+### 👨‍💼 Профессиональные помощники
+
+- **👩🏼‍🎓 Генеральный Помощник** - универсальный ИИ-ассистент
+- **👩🏼‍💻 Помощник по Коду** - программирование и разработка
+- **📊 SQL Помощник** - работа с базами данных
+- **🧮 Бухгалтер** - финансовое планирование
+
+### 🎨 Творческие режимы
+
+- **👩‍🎨 Художник** - генерация изображений из текста
+- **📝 Улучшатель Текста** - редактирование и коррекция
+- **🎬 Киноэксперт** - рекомендации фильмов
+- **🧳 Туристический Гид** - советы по путешествиям
+
+### 🎪 Развлекательные персонажи
+
+- **🚀 Илон Маск** - обсуждение технологий и будущего
+- **🥒 Рик Санчез** - научные темы в стиле Rick and Morty
+- **🌟 Мотиватор** - поддержка и мотивация
+- **💰 Создатель Денег** - бизнес-советы
+
+### 📚 Образовательные режимы
+
+- **🇬🇧 Преподаватель Английского** - изучение языка
+- **🧠 Психолог** - эмоциональная поддержка
+- **💡 Генератор Идей** - создание стартап-идей
+
+---
+
+## 🤖 Поддерживаемые модели ИИ
+
+### 💬 Текстовые модели
+
+| Модель            | Описание                                   | Скорость   | Качество   | Стоимость  |
+| ----------------- | ------------------------------------------ | ---------- | ---------- | ---------- |
+| **GPT-3.5-turbo** | Быстрая модель для повседневных задач      | ⭐⭐⭐⭐⭐ | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ |
+| **GPT-4**         | Самая умная модель для сложных задач       | ⭐⭐       | ⭐⭐⭐⭐⭐ | ⭐⭐       |
+| **GPT-4o**        | Оптимизированная версия GPT-4              | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ | ⭐⭐⭐     |
+| **GPT-4 Vision**  | GPT-4 с возможностью обработки изображений | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ | ⭐⭐⭐     |
+
+### 🎨 Специализированные модели
+
+- **DALLE 2** - генерация изображений высокого качества
+- **Whisper** - распознавание речи и транскрипция
+- **Moderation API** - контроль контента на соответствие правилам
+
+---
+
+## 📱 Команды бота
+
+### 🔧 Основные команды
+
+- `/start` - Запуск бота и выбор языка
+- `/new` - Начать новый диалог
+- `/retry` - Повторить последний ответ
+- `/cancel` - Отменить текущий запрос
+
+### ⚙️ Настройки и режимы
+
+- `/mode` - Выбрать режим чата
+- `/settings` - Настройки модели ИИ
+- `/lang` - Изменить язык интерфейса
+
+### 📊 Информация и статистика
+
+- `/balance` - Показать статистику использования
+- `/premium` - Информация о Premium подписке
+- `/help` - Справка по командам
+
+### 👥 Групповые команды
+
+- `/help_group_chat` - Инструкция по работе в группах
+
+---
+
+## 🆕 История обновлений
+
+### 🎉 Последние обновления (2024)
+
+- **Система Premium подписок** с гибкими тарифами
+- **Поддержка групповых чатов** с раздельными настройками
+- **Многоязычный интерфейс** (русский/английский)
+- **GPT-4o поддержка** для улучшенного качества ответов
+
+### 📅 Предыдущие версии
+
+- **Апрель 2024**: GPT-4 Vision поддержка
+- **Ноябрь 2023**: GPT-4 Turbo поддержка
+- **Август 2023**: OpenAI-совместимые API
+- **Апрель 2023**: DALLE 2 и групповые чаты
+- **Март 2023**: GPT-4 поддержка и потоковые сообщения
+- **Март 2023**: Голосовые сообщения через Whisper
+- **Март 2023**: ChatGPT API интеграция
+
+---
+
+## ⚙️ Установка через Docker
+
+### 📋 Предварительные требования
+
+- Docker и Docker Compose
+- OpenAI API ключ
+- Telegram Bot Token
+
+### 🚀 Быстрый старт
+
+1. **Получите необходимые токены**
+
+   ```bash
+   # Получите OpenAI API ключ на https://platform.openai.com/api-keys
+   # Создайте Telegram бота через @BotFather
+   ```
+
+2. **Клонируйте репозиторий**
+
+   ```bash
+   git clone https://github.com/karfly/chatgpt_telegram_bot.git
+   cd chatgpt_telegram_bot
+   ```
+
+3. **Настройте конфигурацию**
+
+   ```bash
+   # Скопируйте примеры конфигурации
+   cp config/config.example.yml config/config.yml
+   cp config/config.example.env config/config.env
+   ```
+
+4. **Отредактируйте config/config.yml**
+
+   ```yaml
+   telegram_token: "ВАШ_TELEGRAM_BOT_TOKEN"
+   openai_api_key: "ВАШ_OPENAI_API_KEY"
+   allowed_telegram_usernames: [] # пустой = доступен всем
+   new_dialog_timeout: 600
+   enable_message_streaming: true
+   return_n_generated_images: 1
+   image_size: "512x512"
+   ```
+
+5. **Настройте переменные окружения в config/config.env**
+
+   ```env
+   MONGODB_PATH=./mongodb
+   MONGODB_PORT=27017
+
+   # Доступные модели
+   AVAILABLE_TEXT_MODELS=gpt-3.5-turbo,gpt-4,gpt-4o,gpt-4-vision-preview
+   PREMIUM_MODELS=gpt-4,gpt-4o,gpt-4-vision-preview
+   DEFAULT_MODEL=gpt-3.5-turbo
+   ```
+
+6. **Запустите бота**
+   ```bash
+   docker-compose --env-file config/config.env up --build
+   ```
+
+### 🔧 Дополнительные настройки
+
+#### 🛡️ Ограничение доступа
+
+```yaml
+# Только указанные пользователи
+allowed_telegram_usernames: ["username1", "username2", 123456789]
+
+# Включить определенные группы (отрицательные ID)
+allowed_telegram_usernames: [-100123456789]
+```
+
+#### 💳 Настройка платежей
+
+```yaml
+# Добавьте в config.yml для включения платежей
+payment_provider_token: "ВАШ_PAYMENT_PROVIDER_TOKEN"
+```
+
+#### 📊 Мониторинг базы данных
+
+```bash
+# Mongo Express будет доступен на http://localhost:8081
+# Логин/пароль настраиваются в config.env
+```
+
+### 🐳 Docker команды
+
+```bash
+# Запуск в фоне
+docker-compose --env-file config/config.env up -d
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+
+# Обновление
+git pull
+docker-compose --env-file config/config.env up --build
+
+# Очистка данных (ОСТОРОЖНО!)
+docker-compose down -v
+```
+
+### 🔍 Диагностика проблем
+
+#### 🔴 Частые проблемы
+
+1. **Бот не отвечает**: Проверьте telegram_token
+2. **Ошибки OpenAI**: Проверьте openai_api_key и баланс
+3. **Проблемы с базой**: Проверьте доступность MongoDB порта
+4. **Кодировка**: Убедитесь, что файлы config в UTF-8
+
+#### 📋 Проверка логов
+
+```bash
+# Логи бота
+docker-compose logs bot
+
+# Логи базы данных
+docker-compose logs mongo
+
+# Все логи
+docker-compose logs
+```
