@@ -1,4 +1,4 @@
-# message_handlers.py - Обработчики сообщений
+# message_handlers.py - Обработчики сообщений с локализацией
 import io
 import asyncio
 import base64
@@ -11,6 +11,7 @@ from telegram.constants import ParseMode
 import config
 import openai_utils
 from utils import register_user_if_not_exists
+from localization import t
 
 user_semaphores = {}
 user_tasks = {}
@@ -43,12 +44,90 @@ async def is_previous_message_not_answered_yet(update: Update, context: Callback
         user_semaphores[user_id] = asyncio.Semaphore(1)
 
     if user_semaphores[user_id].locked():
-        text = "⏳ Please <b>wait</b> for a reply to the previous message\n"
-        text += "Or you can /cancel it"
+        text = t(user_id, "wait_previous")
         await update.message.reply_text(text, reply_to_message_id=update.message.id, parse_mode=ParseMode.HTML)
         return True
     else:
         return False
+
+async def check_daily_limits(update: Update, user_id: int, db) -> bool:
+    """Проверить дневные лимиты пользователя"""
+    is_premium = db.get_user_subscription_status(user_id)
+    daily_messages = db.get_daily_usage(user_id, "messages")
+    max_daily_messages = 1000 if is_premium else 5
+
+    if daily_messages >= max_daily_messages:
+        limit_text = t(user_id, "daily_limit_exceeded")
+
+        if is_premium:
+            limit_text += t(user_id, "premium_limit_text",
+                          max_messages=max_daily_messages,
+                          used_messages=daily_messages)
+        else:
+            limit_text += t(user_id, "free_limit_text",
+                          max_messages=max_daily_messages,
+                          used_messages=daily_messages)
+
+            keyboard = [[
+                InlineKeyboardButton(t(user_id, "buy_premium"), callback_data="show_premium_plans")
+            ]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.message.reply_text(
+                limit_text,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.HTML
+            )
+            return False
+
+        await update.message.reply_text(limit_text, parse_mode=ParseMode.HTML)
+        return False
+
+    return True
+
+async def check_image_limits(update: Update, user_id: int, db) -> bool:
+    """Проверить лимиты изображений"""
+    is_premium = db.get_user_subscription_status(user_id)
+    daily_images = db.get_daily_usage(user_id, "images")
+    max_daily_images = 50 if is_premium else 2
+
+    if daily_images >= max_daily_images:
+        limit_text = t(user_id, "image_limit_exceeded")
+
+        if is_premium:
+            limit_text += t(user_id, "premium_image_limit",
+                          max_images=max_daily_images,
+                          used_images=daily_images)
+        else:
+            limit_text += t(user_id, "free_image_limit",
+                          max_images=max_daily_images,
+                          used_images=daily_images)
+
+            keyboard = [[InlineKeyboardButton(t(user_id, "buy_premium"), callback_data="show_premium_plans")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(limit_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+            return False
+
+        await update.message.reply_text(limit_text, parse_mode=ParseMode.HTML)
+        return False
+
+    return True
+
+async def check_model_access(update: Update, user_id: int, db) -> str:
+    """Проверить доступ к модели и вернуть допустимую модель"""
+    current_model = db.get_user_attribute(user_id, "current_model")
+    premium_models = ["gpt-4", "gpt-4o", "gpt-4-vision-preview"]
+    is_premium = db.get_user_subscription_status(user_id)
+
+    if current_model in premium_models and not is_premium:
+        await update.message.reply_text(
+            t(user_id, "gpt4_premium_only"),
+            parse_mode=ParseMode.HTML
+        )
+        db.set_user_attribute(user_id, "current_model", "gpt-3.5-turbo")
+        return "gpt-3.5-turbo"
+
+    return current_model
 
 async def message_handle(update: Update, context: CallbackContext, db, message=None, use_new_dialog_timeout=True):
     """Обработка сообщений с проверкой подписки и лимитов"""
@@ -58,7 +137,7 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         return
 
     if update.edited_message is not None:
-        await edited_message_handle(update, context)
+        await edited_message_handle(update, context, db)
         return
 
     await register_user_if_not_exists(update, context, update.message.from_user, db)
@@ -70,52 +149,14 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         user_semaphores[user_id] = asyncio.Semaphore(1)
 
     # ПРОВЕРКА ЛИМИТОВ
-    is_premium = db.get_user_subscription_status(user_id)
-    daily_messages = db.get_daily_usage(user_id, "messages")
-
-    # Лимиты
-    max_daily_messages = 1000 if is_premium else 5
-
-    if daily_messages >= max_daily_messages:
-        text = f"🚫 <b>Дневной лимит исчерпан!</b>\n\n"
-        if is_premium:
-            text += f"Premium: {max_daily_messages} сообщений в день\n"
-            text += f"Использовано: {daily_messages}\n\n"
-            text += "Лимит обновится завтра в 00:00"
-        else:
-            text += f"Бесплатно: {max_daily_messages} сообщений в день\n"
-            text += f"Использовано: {daily_messages}\n\n"
-            text += "💎 Оформите Premium для 1000 сообщений в день!"
-
-            keyboard = [[
-                InlineKeyboardButton("💎 Купить Premium", callback_data="show_premium_plans")
-            ]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-            await update.message.reply_text(
-                text,
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML
-            )
-            return
-
-        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+    if not await check_daily_limits(update, user_id, db):
         return
 
     if await is_previous_message_not_answered_yet(update, context, db):
         return
 
     # Проверка доступа к моделям
-    current_model = db.get_user_attribute(user_id, "current_model")
-    premium_models = ["gpt-4", "gpt-4o", "gpt-4-vision-preview"]
-
-    if current_model in premium_models and not is_premium:
-        await update.message.reply_text(
-            "🔒 GPT-4 доступен только в Premium. Переключено на GPT-3.5-turbo.",
-            parse_mode=ParseMode.HTML
-        )
-        db.set_user_attribute(user_id, "current_model", "gpt-3.5-turbo")
-        current_model = "gpt-3.5-turbo"
+    current_model = await check_model_access(update, user_id, db)
 
     # Увеличиваем счетчик использования
     db.add_daily_usage(user_id, "messages", 1)
@@ -130,22 +171,7 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
 
     if chat_mode == "artist":
         # Проверка лимита изображений
-        daily_images = db.get_daily_usage(user_id, "images")
-        max_daily_images = 50 if is_premium else 2
-
-        if daily_images >= max_daily_images:
-            text = f"🚫 Лимит изображений исчерпан!\n\n"
-            text += f"{'Premium' if is_premium else 'Бесплатно'}: {max_daily_images} изображений в день\n"
-            text += f"Использовано: {daily_images}"
-
-            if not is_premium:
-                text += "\n\n💎 Premium: 50 изображений в день!"
-                keyboard = [[InlineKeyboardButton("💎 Купить Premium", callback_data="show_premium_plans")]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
-                return
-
-            await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        if not await check_image_limits(update, user_id, db):
             return
 
         await generate_image_handle_with_limits(update, context, db, message=message)
@@ -157,7 +183,9 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         if use_new_dialog_timeout:
             if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
                 db.start_new_dialog(user_id)
-                await update.message.reply_text(f"Starting new dialog due to timeout (<b>{config.chat_modes[chat_mode]['name']}</b> mode) ✅", parse_mode=ParseMode.HTML)
+                mode_name = config.chat_modes[chat_mode]['name']
+                timeout_text = t(user_id, "dialog_timeout", mode_name=mode_name)
+                await update.message.reply_text(timeout_text, parse_mode=ParseMode.HTML)
         db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
         # in case of CancelledError
@@ -171,8 +199,8 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
             await update.message.chat.send_action(action="typing")
 
             if _message is None or len(_message) == 0:
-                 await update.message.reply_text("🥲 You sent <b>empty message</b>. Please, try again!", parse_mode=ParseMode.HTML)
-                 return
+                await update.message.reply_text(t(user_id, "empty_message"), parse_mode=ParseMode.HTML)
+                return
 
             dialog_messages = db.get_dialog_messages(user_id, dialog_id=None)
             parse_mode = {
@@ -242,9 +270,9 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         # send message if some messages were removed from the context
         if n_first_dialog_messages_removed > 0:
             if n_first_dialog_messages_removed == 1:
-                text = "✍️ <i>Note:</i> Your current dialog is too long, so your <b>first message</b> was removed from the context.\n Send /new command to start new dialog"
+                text = t(user_id, "message_removed")
             else:
-                text = f"✍️ <i>Note:</i> Your current dialog is too long, so <b>{n_first_dialog_messages_removed} first messages</b> were removed from the context.\n Send /new command to start new dialog"
+                text = t(user_id, "messages_removed", count=n_first_dialog_messages_removed)
             await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
     async with user_semaphores[user_id]:
@@ -266,7 +294,7 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         try:
             await task
         except asyncio.CancelledError:
-            await update.message.reply_text("✅ Canceled", parse_mode=ParseMode.HTML)
+            await update.message.reply_text(t(user_id, "canceled"), parse_mode=ParseMode.HTML)
         else:
             pass
         finally:
@@ -279,7 +307,7 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
 
     if current_model != "gpt-4-vision-preview" and current_model != "gpt-4o":
         await update.message.reply_text(
-            "🥲 Images processing is only available for <b>gpt-4-vision-preview</b> and <b>gpt-4o</b> model. Please change your settings in /settings",
+            t(user_id, "vision_model_required"),
             parse_mode=ParseMode.HTML,
         )
         return
@@ -290,7 +318,9 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
     if use_new_dialog_timeout:
         if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
             db.start_new_dialog(user_id)
-            await update.message.reply_text(f"Starting new dialog due to timeout (<b>{config.chat_modes[chat_mode]['name']}</b> mode) ✅", parse_mode=ParseMode.HTML)
+            mode_name = config.chat_modes[chat_mode]['name']
+            timeout_text = t(user_id, "dialog_timeout", mode_name=mode_name)
+            await update.message.reply_text(timeout_text, parse_mode=ParseMode.HTML)
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
     buf = None
@@ -442,7 +472,7 @@ async def generate_image_handle_with_limits(update: Update, context: CallbackCon
         )
     except Exception as e:
         if "safety system" in str(e):
-            text = "🥲 Your request <b>doesn't comply</b> with OpenAI's usage policies.\nWhat did you write there, huh?"
+            text = t(user_id, "unsupported_content")
             await update.message.reply_text(text, parse_mode=ParseMode.HTML)
             return
         else:
@@ -478,7 +508,7 @@ async def voice_message_handle(update: Update, context: CallbackContext, db):
     buf.seek(0)  # move cursor to the beginning of the buffer
 
     transcribed_text = await openai_utils.transcribe_audio(buf)
-    text = f"🎤: <i>{transcribed_text}</i>"
+    text = t(user_id, "voice_transcription", text=transcribed_text)
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
     # update n_transcribed_seconds
@@ -486,16 +516,18 @@ async def voice_message_handle(update: Update, context: CallbackContext, db):
 
     await message_handle(update, context, db, message=transcribed_text)
 
-async def unsupport_message_handle(update: Update, context: CallbackContext):
+async def unsupport_message_handle(update: Update, context: CallbackContext, db):
     """Обработка неподдерживаемых типов сообщений"""
-    error_text = "I don't know how to read files or videos. Send the picture in normal mode (Quick Mode)."
+    user_id = update.message.from_user.id
+    error_text = t(user_id, "unsupported_files")
     await update.message.reply_text(error_text)
     return
 
-async def edited_message_handle(update: Update, context: CallbackContext):
+async def edited_message_handle(update: Update, context: CallbackContext, db):
     """Обработка отредактированных сообщений"""
     if update.edited_message.chat.type == "private":
-        text = "🥲 Unfortunately, message <b>editing</b> is not supported"
+        user_id = update.edited_message.from_user.id
+        text = t(user_id, "editing_not_supported")
         await update.edited_message.reply_text(text, parse_mode=ParseMode.HTML)
 
 async def retry_handle(update: Update, context: CallbackContext, db):
@@ -509,7 +541,7 @@ async def retry_handle(update: Update, context: CallbackContext, db):
 
     dialog_messages = db.get_dialog_messages(user_id, dialog_id=None)
     if len(dialog_messages) == 0:
-        await update.message.reply_text("No message to retry 🤷‍♂️")
+        await update.message.reply_text(t(user_id, "nothing_to_retry"))
         return
 
     last_dialog_message = dialog_messages.pop()
@@ -528,4 +560,7 @@ async def cancel_handle(update: Update, context: CallbackContext, db):
         task = user_tasks[user_id]
         task.cancel()
     else:
-        await update.message.reply_text("<i>Nothing to cancel...</i>", parse_mode=ParseMode.HTML)
+        await update.message.reply_text(
+            t(user_id, "nothing_to_cancel"),
+            parse_mode=ParseMode.HTML
+        )

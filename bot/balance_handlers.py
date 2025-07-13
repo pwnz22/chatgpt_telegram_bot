@@ -1,10 +1,11 @@
-# balance_handlers.py - Обработчики баланса и статистики
+# balance_handlers.py - Обработчики баланса и статистики с локализацией
 from datetime import datetime
 import telegram
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 from utils import register_user_if_not_exists
+from localization import t
 
 async def show_balance_handle(update: Update, context: CallbackContext, db):
     """Показать баланс и статистику с учетом подписки"""
@@ -35,7 +36,7 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
     max_images = 50 if is_premium else 2
 
     # Основная статистика
-    text = f"💳 <b>Ваш баланс и статистика</b>\n\n"
+    text = t(user_id, "balance_title")
 
     # Статус подписки
     if is_premium:
@@ -44,30 +45,40 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
             "status": "active",
             "expires_at": {"$gt": datetime.now()}
         })
-        text += f"💎 <b>Premium до:</b> {subscription['expires_at'].strftime('%d.%m.%Y')}\n\n"
+        date_str = subscription['expires_at'].strftime('%d.%m.%Y')
+        text += t(user_id, "premium_until", date=date_str)
     else:
-        text += f"🆓 <b>Бесплатный план</b>\n\n"
+        text += t(user_id, "free_plan")
 
     # Использование за сегодня
-    text += f"📊 <b>Использование сегодня:</b>\n"
-    text += f"💬 Сообщения: {daily_messages}/{max_messages}\n"
-    text += f"🎨 Изображения: {daily_images}/{max_images}\n\n"
+    text += t(user_id, "usage_today")
+    text += t(user_id, "messages_stat", used=daily_messages, max=max_messages)
+    text += t(user_id, "images_stat", used=daily_images, max=max_images)
 
     # Общая статистика (упрощенная версия)
-    n_used_tokens_dict = db.get_user_attribute(user_id, "n_used_tokens")
-    n_generated_images = db.get_user_attribute(user_id, "n_generated_images")
+    # n_used_tokens_dict = db.get_user_attribute(user_id, "n_used_tokens")
+    # n_generated_images = db.get_user_attribute(user_id, "n_generated_images")
 
-    total_tokens = 0
-    for model_data in n_used_tokens_dict.values():
-        if isinstance(model_data, dict):
-            total_tokens += model_data.get("n_input_tokens", 0) + model_data.get("n_output_tokens", 0)
+    # total_tokens = 0
+    # for model_data in n_used_tokens_dict.values():
+    #     if isinstance(model_data, dict):
+    #         total_tokens += model_data.get("n_input_tokens", 0) + model_data.get("n_output_tokens", 0)
 
-    # Кнопка Premium если не активна
+    # text += t(user_id, "total_tokens", tokens=total_tokens)
+    # text += t(user_id, "total_images", images=n_generated_images)
+
+    # Кнопки
     keyboard = []
     if not is_premium:
-        keyboard.append([InlineKeyboardButton("💎 Купить Premium", callback_data="show_premium_plans")])
+        keyboard.append([InlineKeyboardButton(
+            t(user_id, "buy_premium"),
+            callback_data="show_premium_plans"
+        )])
 
-    keyboard.append([InlineKeyboardButton("📊 Обновить статистику", callback_data="refresh_balance")])
+    keyboard.append([InlineKeyboardButton(
+        t(user_id, "refresh_stats"),
+        callback_data="refresh_balance"
+    )])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -77,7 +88,7 @@ async def show_balance_handle(update: Update, context: CallbackContext, db):
         if str(e).startswith("Message is not modified"):
             # Сообщение не изменилось, просто ответим на callback
             if hasattr(update, 'callback_query') and update.callback_query:
-                await update.callback_query.answer("✅ Статистика актуальна")
+                await update.callback_query.answer(t(user_id, "stats_up_to_date"))
         else:
             # Другая ошибка - пробрасываем дальше
             raise

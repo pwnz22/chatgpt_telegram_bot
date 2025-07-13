@@ -1,4 +1,4 @@
-# bot.py - Главный файл бота (рефакторинг)
+# bot.py - Главный файл бота с системой локализации
 import logging
 import traceback
 import html
@@ -22,6 +22,9 @@ import config
 import database
 from utils import split_text_into_chunks
 
+# Инициализация локализации
+from localization import init_localization
+
 # Импорты обработчиков
 from basic_handlers import (
     start_handle,
@@ -40,7 +43,7 @@ from message_handlers import (
     voice_message_handle,
     unsupport_message_handle,
     retry_handle,
-    cancel_handle,
+    cancel_handle
 )
 
 from balance_handlers import show_balance_handle
@@ -53,9 +56,18 @@ from subscription_handlers import (
     successful_payment_callback
 )
 
+# Импорт обработчиков языков
+from language_handlers import (
+    language_handle,
+    set_language_handle
+)
+
 # Setup
 db = database.Database()
 logger = logging.getLogger(__name__)
+
+# Инициализация локализации
+localization = init_localization(db)
 
 async def error_handle(update: Update, context: CallbackContext) -> None:
     """Обработчик ошибок"""
@@ -92,6 +104,7 @@ async def post_init(application: Application):
         BotCommand("/balance", "Show balance"),
         BotCommand("/premium", "Premium subscription"),
         BotCommand("/settings", "Show settings"),
+        BotCommand("/lang", "Change language"),
         BotCommand("/help", "Show help message"),
     ])
 
@@ -125,11 +138,15 @@ def run_bot() -> None:
     application.add_handler(CommandHandler("retry", lambda u, c: retry_handle(u, c, db), filters=user_filter))
     application.add_handler(CommandHandler("cancel", lambda u, c: cancel_handle(u, c, db), filters=user_filter))
 
+    # Обработчики языков
+    application.add_handler(CommandHandler("lang", lambda u, c: language_handle(u, c, db), filters=user_filter))
+    application.add_handler(CallbackQueryHandler(lambda u, c: set_language_handle(u, c, db), pattern="^set_language"))
+
     # Обработчики сообщений
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & user_filter, lambda u, c: message_handle(u, c, db)))
     application.add_handler(MessageHandler(filters.PHOTO & ~filters.COMMAND & user_filter, lambda u, c: message_handle(u, c, db)))
-    application.add_handler(MessageHandler(filters.VIDEO & ~filters.COMMAND & user_filter, unsupport_message_handle))
-    application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND & user_filter, unsupport_message_handle))
+    application.add_handler(MessageHandler(filters.VIDEO & ~filters.COMMAND & user_filter, lambda u, c: unsupport_message_handle(u, c, db)))
+    application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND & user_filter, lambda u, c: unsupport_message_handle(u, c, db)))
     application.add_handler(MessageHandler(filters.VOICE & user_filter, lambda u, c: voice_message_handle(u, c, db)))
 
     # Обработчики режимов чата

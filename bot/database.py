@@ -1,8 +1,8 @@
-# database.py - Расширенная версия с подписками
+# database.py - С поддержкой языков
 from typing import Optional, Any
 import pymongo
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 import config
 
 
@@ -31,6 +31,9 @@ class Database:
         first_name: str = "",
         last_name: str = "",
     ):
+        # Определяем язык по умолчанию на основе языка пользователя в Telegram
+        default_language = "en"  # По умолчанию английский
+
         user_dict = {
             "_id": user_id,
             "chat_id": chat_id,
@@ -45,6 +48,7 @@ class Database:
             "current_dialog_id": None,
             "current_chat_mode": "assistant",
             "current_model": config.models["available_text_models"][0],
+            "language": default_language,  # НОВОЕ ПОЛЕ
 
             "n_used_tokens": {},
 
@@ -84,6 +88,9 @@ class Database:
         user_dict = self.user_collection.find_one({"_id": user_id})
 
         if key not in user_dict:
+            # Для поля language возвращаем "en" по умолчанию
+            if key == "language":
+                return "en"
             return None
 
         return user_dict[key]
@@ -127,7 +134,7 @@ class Database:
         )
 
     # ========================
-    # НОВЫЕ МЕТОДЫ ДЛЯ ПОДПИСОК
+    # МЕТОДЫ ДЛЯ ПОДПИСОК
     # ========================
 
     def get_user_subscription_status(self, user_id: int):
@@ -165,7 +172,7 @@ class Database:
     def create_subscription(self, user_id: int, plan: str, duration_days: int):
         """Создать новую подписку"""
         subscription_id = str(uuid.uuid4())
-        expires_at = datetime.now() + datetime.timedelta(days=duration_days)
+        expires_at = datetime.now() + timedelta(days=duration_days)
 
         subscription = {
             "_id": subscription_id,
