@@ -1,4 +1,4 @@
-# localization.py - Система локализации
+# localization.py - Система локализации с поддержкой групп
 from typing import Dict, Any
 
 # Тексты на разных языках
@@ -65,6 +65,8 @@ For example: "{bot_username} write a poem about Telegram" """,
 
         # Режимы чата
         "select_chat_mode": "Select <b>chat mode</b> ({count} modes available):",
+        "select_chat_mode_group": "Select <b>chat mode for this group</b> ({count} modes available):",
+        "chat_mode_set_for_group": "✅ Chat mode <b>{mode_name}</b> set for this group",
 
         # Настройки
         "select_model": "\nSelect <b>model</b>:",
@@ -185,6 +187,8 @@ For example: "{bot_username} write a poem about Telegram" """,
 
         # Режимы чата
         "select_chat_mode": "Выберите <b>режим чата</b> (доступно {count} режимов):",
+        "select_chat_mode_group": "Выберите <b>режим чата для этой группы</b> (доступно {count} режимов):",
+        "chat_mode_set_for_group": "✅ Режим чата <b>{mode_name}</b> установлен для этой группы",
 
         # Настройки
         "select_model": "\nВыберите <b>модель</b>:",

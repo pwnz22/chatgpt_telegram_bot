@@ -1,4 +1,4 @@
-# database.py - С поддержкой языков
+# database.py - С поддержкой групповых настроек
 from typing import Optional, Any
 import pymongo
 import uuid
@@ -13,6 +13,7 @@ class Database:
 
         self.user_collection = self.db["user"]
         self.dialog_collection = self.db["dialog"]
+        self.group_collection = self.db["group"]  # Новая коллекция для групп
 
     def check_if_user_exists(self, user_id: int, raise_exception: bool = False):
         if self.user_collection.count_documents({"_id": user_id}) > 0:
@@ -22,6 +23,65 @@ class Database:
                 raise ValueError(f"User {user_id} does not exist")
             else:
                 return False
+
+    def check_if_group_exists(self, group_id: int):
+        """Проверить существование группы"""
+        return self.group_collection.count_documents({"_id": group_id}) > 0
+
+    def add_new_group(self, group_id: int, group_title: str = ""):
+        """Добавить новую группу"""
+        if not self.check_if_group_exists(group_id):
+            group_dict = {
+                "_id": group_id,
+                "title": group_title,
+                "current_chat_mode": "assistant",  # Режим по умолчанию для группы
+                "created_at": datetime.now(),
+                "last_interaction": datetime.now()
+            }
+            self.group_collection.insert_one(group_dict)
+
+    def get_group_attribute(self, group_id: int, key: str):
+        """Получить атрибут группы"""
+        if not self.check_if_group_exists(group_id):
+            return None
+
+        group_dict = self.group_collection.find_one({"_id": group_id})
+        return group_dict.get(key, None)
+
+    def set_group_attribute(self, group_id: int, key: str, value: Any):
+        """Установить атрибут группы"""
+        if not self.check_if_group_exists(group_id):
+            return False
+
+        self.group_collection.update_one(
+            {"_id": group_id},
+            {"$set": {key: value}}
+        )
+        return True
+
+    def get_chat_mode(self, user_id: int, chat_id: int = None):
+        """Получить режим чата в зависимости от контекста (группа или приватный чат)"""
+        if chat_id and chat_id < 0:  # Групповой чат (отрицательный ID)
+            if self.check_if_group_exists(chat_id):
+                return self.get_group_attribute(chat_id, "current_chat_mode") or "assistant"
+            else:
+                # Если группа не существует, создаем её с режимом по умолчанию
+                self.add_new_group(chat_id)
+                return "assistant"
+        else:
+            # Приватный чат - используем настройки пользователя
+            return self.get_user_attribute(user_id, "current_chat_mode")
+
+    def set_chat_mode(self, user_id: int, chat_mode: str, chat_id: int = None):
+        """Установить режим чата в зависимости от контекста"""
+        if chat_id and chat_id < 0:  # Групповой чат
+            if not self.check_if_group_exists(chat_id):
+                self.add_new_group(chat_id)
+            self.set_group_attribute(chat_id, "current_chat_mode", chat_mode)
+            self.set_group_attribute(chat_id, "last_interaction", datetime.now())
+        else:
+            # Приватный чат
+            self.set_user_attribute(user_id, "current_chat_mode", chat_mode)
 
     def add_new_user(
             self,
@@ -56,14 +116,19 @@ class Database:
             if not self.check_if_user_exists(user_id):
                 self.user_collection.insert_one(user_dict)
 
-    def start_new_dialog(self, user_id: int):
+    def start_new_dialog(self, user_id: int, chat_id: int = None):
         self.check_if_user_exists(user_id, raise_exception=True)
 
         dialog_id = str(uuid.uuid4())
+
+        # Получаем режим чата в зависимости от контекста
+        chat_mode = self.get_chat_mode(user_id, chat_id)
+
         dialog_dict = {
             "_id": dialog_id,
             "user_id": user_id,
-            "chat_mode": self.get_user_attribute(user_id, "current_chat_mode"),
+            "chat_id": chat_id,  # Добавляем chat_id для связи с группой
+            "chat_mode": chat_mode,
             "start_time": datetime.now(),
             "model": self.get_user_attribute(user_id, "current_model"),
             "messages": []

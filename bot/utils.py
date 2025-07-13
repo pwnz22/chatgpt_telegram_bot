@@ -1,4 +1,4 @@
-# utils.py - Вспомогательные функции
+# utils.py - Вспомогательные функции с поддержкой групп
 import asyncio
 from datetime import datetime
 from telegram import Update, User
@@ -24,10 +24,10 @@ async def register_user_if_not_exists(update: Update, context: CallbackContext, 
             first_name=user.first_name,
             last_name=user.last_name
         )
-        db.start_new_dialog(user.id)
+        db.start_new_dialog(user.id, chat_id)
 
     if db.get_user_attribute(user.id, "current_dialog_id") is None:
-        db.start_new_dialog(user.id)
+        db.start_new_dialog(user.id, chat_id)
 
     if db.get_user_attribute(user.id, "current_model") is None:
         db.set_user_attribute(user.id, "current_model", config.models["available_text_models"][0])
@@ -50,6 +50,23 @@ async def register_user_if_not_exists(update: Update, context: CallbackContext, 
     # image generation
     if db.get_user_attribute(user.id, "n_generated_images") is None:
         db.set_user_attribute(user.id, "n_generated_images", 0)
+
+async def register_group_if_not_exists(update: Update, context: CallbackContext, db):
+    """Регистрация группы если не существует"""
+
+    # Получаем информацию о чате
+    if hasattr(update, 'message') and update.message:
+        chat = update.message.chat
+    elif hasattr(update, 'callback_query') and update.callback_query:
+        chat = update.callback_query.message.chat
+    else:
+        return  # Не можем определить чат
+
+    # Проверяем, что это групповой чат (отрицательный ID)
+    if chat.id < 0:
+        if not db.check_if_group_exists(chat.id):
+            group_title = chat.title or f"Group {abs(chat.id)}"
+            db.add_new_group(chat.id, group_title)
 
 def split_text_into_chunks(text, chunk_size):
     """Разделение текста на части"""

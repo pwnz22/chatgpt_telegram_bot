@@ -1,4 +1,4 @@
-# message_handlers.py - С автоматическим определением языка
+# message_handlers.py - С поддержкой групп и автоматическим определением языка
 import io
 import asyncio
 import base64
@@ -10,7 +10,7 @@ from telegram.constants import ParseMode
 
 import config
 import openai_utils
-from utils import register_user_if_not_exists
+from utils import register_user_if_not_exists, register_group_if_not_exists
 from localization import t
 
 user_semaphores = {}
@@ -49,7 +49,6 @@ def enhance_dialog_messages_with_language(dialog_messages: list, user_id: int, d
 
     return enhanced_messages
 
-# Остальные функции остаются без изменений...
 async def is_bot_mentioned(update: Update, context: CallbackContext):
     try:
         message = update.message
@@ -164,7 +163,7 @@ async def check_model_access(update: Update, user_id: int, db) -> str:
     return current_model
 
 async def message_handle(update: Update, context: CallbackContext, db, message=None, use_new_dialog_timeout=True):
-    """Обработка сообщений с проверкой подписки и лимитов"""
+    """Обработка сообщений с поддержкой групп"""
 
     # Проверка упоминания бота
     if not await is_bot_mentioned(update, context):
@@ -177,6 +176,11 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
     await register_user_if_not_exists(update, context, update.message.from_user, db)
 
     user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
+
+    # Регистрируем группу если это групповой чат
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
 
     # Инициализация семафора
     if user_id not in user_semaphores:
@@ -201,7 +205,8 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
     if update.message.chat.type != "private":
         _message = _message.replace("@" + context.bot.username, "").strip()
 
-    chat_mode = db.get_user_attribute(user_id, "current_chat_mode")
+    # Получаем режим чата с учетом контекста (группа или приватный чат)
+    chat_mode = db.get_chat_mode(user_id, chat_id)
 
     if chat_mode == "artist":
         # Проверка лимита изображений
@@ -216,7 +221,7 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
         # new dialog timeout
         if use_new_dialog_timeout:
             if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
-                db.start_new_dialog(user_id)
+                db.start_new_dialog(user_id, chat_id)
 
                 # Получаем локализованное welcome сообщение напрямую
                 user_language = db.get_user_attribute(user_id, "language") or "en"
@@ -354,9 +359,9 @@ async def message_handle(update: Update, context: CallbackContext, db, message=N
             if user_id in user_tasks:
                 del user_tasks[user_id]
 
-# Остальные функции без изменений, добавим только обновленную vision функцию
 async def _vision_message_handle_fn(update: Update, context: CallbackContext, db, use_new_dialog_timeout: bool = True):
     user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
     current_model = db.get_user_attribute(user_id, "current_model")
 
     if current_model != "gpt-4-vision-preview" and current_model != "gpt-4o":
@@ -366,12 +371,13 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
         )
         return
 
-    chat_mode = db.get_user_attribute(user_id, "current_chat_mode")
+    # Получаем режим чата с учетом контекста
+    chat_mode = db.get_chat_mode(user_id, chat_id)
 
     # new dialog timeout
     if use_new_dialog_timeout:
         if (datetime.now() - db.get_user_attribute(user_id, "last_interaction")).seconds > config.new_dialog_timeout and len(db.get_dialog_messages(user_id)) > 0:
-            db.start_new_dialog(user_id)
+            db.start_new_dialog(user_id, chat_id)
 
             # Получаем локализованное welcome сообщение напрямую
             user_language = db.get_user_attribute(user_id, "language") or "en"
@@ -522,10 +528,14 @@ async def _vision_message_handle_fn(update: Update, context: CallbackContext, db
         await update.message.reply_text(error_text)
         return
 
-# Остальные функции остаются без изменений...
 async def generate_image_handle_with_limits(update: Update, context: CallbackContext, db, message=None):
     """Генерация изображений с проверкой лимитов"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)
+
+    chat_id = update.message.chat_id
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
+
     if await is_previous_message_not_answered_yet(update, context, db):
         return
 
@@ -566,6 +576,11 @@ async def voice_message_handle(update: Update, context: CallbackContext, db):
         return
 
     await register_user_if_not_exists(update, context, update.message.from_user, db)
+
+    chat_id = update.message.chat_id
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
+
     if await is_previous_message_not_answered_yet(update, context, db):
         return
 
@@ -607,6 +622,11 @@ async def edited_message_handle(update: Update, context: CallbackContext, db):
 async def retry_handle(update: Update, context: CallbackContext, db):
     """Повтор последнего сообщения"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)
+
+    chat_id = update.message.chat_id
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
+
     if await is_previous_message_not_answered_yet(update, context, db):
         return
 
@@ -627,14 +647,8 @@ async def cancel_handle(update: Update, context: CallbackContext, db):
     """Отмена текущего запроса"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)
 
-    user_id = update.message.from_user.id
-    db.set_user_attribute(user_id, "last_interaction", datetime.now())
+    chat_id = update.message.chat_id
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
 
-    if user_id in user_tasks:
-        task = user_tasks[user_id]
-        task.cancel()
-    else:
-        await update.message.reply_text(
-            t(user_id, "nothing_to_cancel"),
-            parse_mode=ParseMode.HTML
-        )
+    user_id = update.message.from_user

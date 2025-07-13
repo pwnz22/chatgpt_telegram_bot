@@ -1,15 +1,20 @@
-# language_handlers.py - Обработчики языков с локализованными текстами (обновленная версия)
+# language_handlers.py - Обработчики языков с локализованными текстами (исправленная версия)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 from datetime import datetime
-from utils import register_user_if_not_exists
+from utils import register_user_if_not_exists, register_group_if_not_exists
 from localization import t
 
 async def language_handle(update: Update, context: CallbackContext, db):
     """Показать меню выбора языка"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)
     user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
+
+    # Регистрируем группу если это групповой чат
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
 
     # Обновляем время последнего взаимодействия
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
@@ -102,8 +107,13 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
     await query.answer()
 
     user_id = query.from_user.id
+    chat_id = query.message.chat_id
     language = query.data.split("|")[1]
     old_language = db.get_user_attribute(user_id, "language")
+
+    # Регистрируем группу если это групповой чат
+    if chat_id < 0:
+        await register_group_if_not_exists(update, context, db)
 
     # Устанавливаем новый язык
     db.set_user_attribute(user_id, "language", language)
@@ -112,7 +122,7 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
     # Если это первый выбор языка (old_language is None), показываем полное приветствие
     if old_language is None:
         # Начинаем новый диалог для применения языковых изменений
-        db.start_new_dialog(user_id)
+        db.start_new_dialog(user_id, chat_id)
 
         # Показываем приветствие на выбранном языке
         reply_text = t(user_id, "start_greeting")
@@ -132,7 +142,7 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
         return
 
     # Язык изменился, начинаем новый диалог
-    db.start_new_dialog(user_id)
+    db.start_new_dialog(user_id, chat_id)
 
     # Отправляем уведомление на новом языке
     confirmation_text = t(user_id, "language_change_notification")
@@ -152,14 +162,15 @@ async def back_to_language_callback_handle(update: Update, context: CallbackCont
 async def show_chat_modes_handle_from_callback(query, context: CallbackContext, db):
     """Показать режимы чата после выбора языка"""
     user_id = query.from_user.id
+    chat_id = query.message.chat_id
 
-    # Используем ту же логику, что и в basic_handlers.py
+    # Используем обновленную функцию с правильными параметрами
     from basic_handlers import get_chat_mode_menu
-    text, reply_markup = get_chat_mode_menu(0, user_id)
+    text, reply_markup = get_chat_mode_menu(0, user_id, chat_id, db)
 
     # Отправляем новое сообщение вместо редактирования
     await context.bot.send_message(
-        chat_id=query.message.chat_id,
+        chat_id=chat_id,
         text=text,
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
