@@ -177,7 +177,6 @@ async def set_chat_mode_handle(update: Update, context: CallbackContext, db):
         parse_mode=ParseMode.HTML
     )
 
-# Settings handlers
 def get_settings_menu(user_id: int, db):
     current_model = db.get_user_attribute(user_id, "current_model")
     text = config.models["info"][current_model]["description"]
@@ -189,17 +188,19 @@ def get_settings_menu(user_id: int, db):
 
     text += t(user_id, "select_model")
 
-    # buttons to choose models
-    buttons = []
+    # buttons to choose models - ИСПРАВЛЕНО: каждая кнопка в отдельной строке
+    keyboard = []
     for model_key in config.models["available_text_models"]:
         title = config.models["info"][model_key]["name"]
         if model_key == current_model:
             title = "✅ " + title
 
-        buttons.append(
+        # Каждая кнопка в отдельной строке (списке)
+        keyboard.append([
             InlineKeyboardButton(title, callback_data=f"set_settings|{model_key}")
-        )
-    reply_markup = InlineKeyboardMarkup([buttons])
+        ])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
     return text, reply_markup
 
