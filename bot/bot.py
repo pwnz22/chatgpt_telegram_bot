@@ -849,9 +849,20 @@ async def set_settings_handle(update: Update, context: CallbackContext):
 
 async def show_balance_handle(update: Update, context: CallbackContext):
     """Показать баланс и статистику с учетом подписки"""
-    await register_user_if_not_exists(update, context, update.message.from_user)
 
-    user_id = update.message.from_user.id
+    # Определяем откуда пришел запрос - команда или callback
+    if update.message:
+        # Пришло через команду /balance
+        await register_user_if_not_exists(update, context, update.message.from_user)
+        user_id = update.message.from_user.id
+        send_method = update.message.reply_text
+    else:
+        # Пришло через callback (кнопку "Обновить статистику")
+        await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user)
+        user_id = update.callback_query.from_user.id
+        send_method = update.callback_query.edit_message_text
+        await update.callback_query.answer()
+
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
     is_premium = db.get_user_subscription_status(user_id)
@@ -891,16 +902,16 @@ async def show_balance_handle(update: Update, context: CallbackContext):
     n_generated_images = db.get_user_attribute(user_id, "n_generated_images")
     n_transcribed_seconds = db.get_user_attribute(user_id, "n_transcribed_seconds")
 
-    details_text = "🏷️ <b>Детальная статистика:</b>\n"
-    for model_key in sorted(n_used_tokens_dict.keys()):
-        n_input_tokens, n_output_tokens = n_used_tokens_dict[model_key]["n_input_tokens"], n_used_tokens_dict[model_key]["n_output_tokens"]
-        total_n_used_tokens += n_input_tokens + n_output_tokens
+    # details_text = "🏷️ <b>Детальная статистика:</b>\n"
+    # for model_key in sorted(n_used_tokens_dict.keys()):
+    #     n_input_tokens, n_output_tokens = n_used_tokens_dict[model_key]["n_input_tokens"], n_used_tokens_dict[model_key]["n_output_tokens"]
+    #     total_n_used_tokens += n_input_tokens + n_output_tokens
 
-        n_input_spent_dollars = config.models["info"][model_key]["price_per_1000_input_tokens"] * (n_input_tokens / 1000)
-        n_output_spent_dollars = config.models["info"][model_key]["price_per_1000_output_tokens"] * (n_output_tokens / 1000)
-        total_n_spent_dollars += n_input_spent_dollars + n_output_spent_dollars
+    #     n_input_spent_dollars = config.models["info"][model_key]["price_per_1000_input_tokens"] * (n_input_tokens / 1000)
+    #     n_output_spent_dollars = config.models["info"][model_key]["price_per_1000_output_tokens"] * (n_output_tokens / 1000)
+    #     total_n_spent_dollars += n_input_spent_dollars + n_output_spent_dollars
 
-        details_text += f"- {model_key}: <b>{n_input_spent_dollars + n_output_spent_dollars:.03f}$</b> / <b>{n_input_tokens + n_output_tokens} токенов</b>\n"
+    #     details_text += f"- {model_key}: <b>{n_input_spent_dollars + n_output_spent_dollars:.03f}$</b> / <b>{n_input_tokens + n_output_tokens} токенов</b>\n"
 
     # Генерация изображений
     image_generation_n_spent_dollars = config.models["info"]["dalle-2"]["price_per_1_image"] * n_generated_images
@@ -910,15 +921,15 @@ async def show_balance_handle(update: Update, context: CallbackContext):
     total_n_spent_dollars += image_generation_n_spent_dollars
 
     # Распознавание голоса
-    voice_recognition_n_spent_dollars = config.models["info"]["whisper"]["price_per_1_min"] * (n_transcribed_seconds / 60)
-    if n_transcribed_seconds != 0:
-        details_text += f"- Whisper: <b>{voice_recognition_n_spent_dollars:.03f}$</b> / <b>{n_transcribed_seconds:.01f} секунд</b>\n"
+    # voice_recognition_n_spent_dollars = config.models["info"]["whisper"]["price_per_1_min"] * (n_transcribed_seconds / 60)
+    # if n_transcribed_seconds != 0:
+    #     details_text += f"- Whisper: <b>{voice_recognition_n_spent_dollars:.03f}$</b> / <b>{n_transcribed_seconds:.01f} секунд</b>\n"
 
-    total_n_spent_dollars += voice_recognition_n_spent_dollars
+    # total_n_spent_dollars += voice_recognition_n_spent_dollars
 
-    text += f"💰 <b>Всего потрачено:</b> {total_n_spent_dollars:.03f}$\n"
-    text += f"🔤 <b>Всего токенов:</b> {total_n_used_tokens}\n\n"
-    text += details_text
+    # text += f"💰 <b>Всего потрачено:</b> {total_n_spent_dollars:.03f}$\n"
+    # text += f"🔤 <b>Всего токенов:</b> {total_n_used_tokens}\n\n"
+    # text += details_text
 
     # Кнопка Premium если не активна
     keyboard = []
@@ -928,7 +939,17 @@ async def show_balance_handle(update: Update, context: CallbackContext):
     keyboard.append([InlineKeyboardButton("📊 Обновить статистику", callback_data="refresh_balance")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+
+    try:
+        await send_method(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+    except telegram.error.BadRequest as e:
+        if str(e).startswith("Message is not modified"):
+            # Сообщение не изменилось, просто ответим на callback
+            if hasattr(update, 'callback_query') and update.callback_query:
+                await update.callback_query.answer("✅ Статистика актуальна")
+        else:
+            # Другая ошибка - пробрасываем дальше
+            raise
 
 async def edited_message_handle(update: Update, context: CallbackContext):
     if update.edited_message.chat.type == "private":
@@ -1006,16 +1027,16 @@ async def show_premium_plans_handle(update: Update, context: CallbackContext):
     text += "• Приоритетная обработка\n\n"
 
     text += "<b>Тарифы:</b>\n"
-    text += "🗓 Месяц - 299₽\n"
-    text += "📅 Год - 2990₽ (скидка 17%)"
+    text += "🗓 Месяц - 25 сомчиков\n"
+    text += "📅 Год - 200 сомчиков"
 
     keyboard = []
 
     # Показываем кнопки покупки только если токен настроен
     if not is_premium and config.PAYMENT_PROVIDER_TOKEN:
         keyboard.extend([
-            [InlineKeyboardButton("🗓 Месяц - 299₽", callback_data="buy_premium_monthly")],
-            [InlineKeyboardButton("📅 Год - 2990₽", callback_data="buy_premium_yearly")]
+            [InlineKeyboardButton("🗓 Месяц - 20 TJS", callback_data="buy_premium_monthly")],
+            [InlineKeyboardButton("📅 Год - 200 TJS", callback_data="buy_premium_yearly")]
         ])
     elif not config.PAYMENT_PROVIDER_TOKEN:
         text += "\n\n❌ <i>Платежи временно недоступны</i>"
@@ -1064,28 +1085,53 @@ async def buy_premium_handle(update: Update, context: CallbackContext):
     await query.answer()
 
     plan_type = query.data.split("_")[-1]  # monthly или yearly
+    user_id = query.from_user.id
 
+    # ВРЕМЕННАЯ ВЕРСИЯ: автоматически активируем Premium без оплаты
     if plan_type == "monthly":
-        title = "Premium на месяц"
-        description = "Premium доступ на 30 дней"
-        price = 299
-        payload = "premium_monthly"
+        duration_days = 30
+        plan_name = "Premium Monthly"
     else:
-        title = "Premium на год"
-        description = "Premium доступ на 365 дней со скидкой 17%"
-        price = 2990
-        payload = "premium_yearly"
+        duration_days = 365
+        plan_name = "Premium Yearly"
 
-    await context.bot.send_invoice(
-        chat_id=query.message.chat_id,
-        title=title,
-        description=description,
-        payload=payload,
-        provider_token=config.PAYMENT_PROVIDER_TOKEN,
-        currency="RUB",
-        prices=[LabeledPrice("Premium", price * 100)],  # в копейках
-        start_parameter="premium_subscription"
-    )
+    # Создаем подписку без реального платежа
+    subscription_id = str(uuid.uuid4())
+    expires_at = datetime.now() + timedelta(days=duration_days)
+
+    subscription = {
+        "_id": subscription_id,
+        "user_id": user_id,
+        "plan": f"premium_{plan_type}",
+        "status": "active",
+        "created_at": datetime.now(),
+        "expires_at": expires_at,
+        "payment_id": "test_payment"  # Тестовый платеж
+    }
+
+    db.db["subscriptions"].insert_one(subscription)
+
+    # Записываем тестовый платеж
+    payment_record = {
+        "_id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "amount": 25 if plan_type == "monthly" else 200,
+        "currency": "RUB",
+        "subscription_id": subscription_id,
+        "telegram_payment_id": "test_charge_id",
+        "created_at": datetime.now()
+    }
+
+    db.db["payments"].insert_one(payment_record)
+
+    # Уведомляем пользователя
+    text = f"🎉 <b>Premium активирован!</b>\n\n"
+    text += f"План: {plan_name}\n"
+    text += f"Действует до: {expires_at.strftime('%d.%m.%Y')}\n\n"
+    text += "✨ <i>Тестовая активация - платежи временно отключены</i>\n\n"
+    text += "Теперь вам доступны все Premium функции!"
+
+    await query.edit_message_text(text, parse_mode=ParseMode.HTML)
 
 async def pre_checkout_callback(update: Update, context: CallbackContext):
     """Проверка перед оплатой"""
