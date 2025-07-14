@@ -3,11 +3,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotComm
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 from datetime import datetime
-from utils import register_user_if_not_exists
+from utils import register_user_if_not_exists, check_group_admin_rights, send_admin_rights_error
 from localization import t, TEXTS
 
 async def language_handle(update: Update, context: CallbackContext, db):
-    """Показать меню выбора языка с поддержкой групп"""
+    """Показать меню выбора языка с проверкой прав того, кто добавил бота"""
     await register_user_if_not_exists(update, context, update.message.from_user, db)
 
     # Регистрируем группу если нужно
@@ -16,6 +16,12 @@ async def language_handle(update: Update, context: CallbackContext, db):
 
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
+
+    # Проверяем права для групп - только тот, кто добавил бота
+    if chat_id < 0:  # Группа
+        if not await check_group_admin_rights(update, context, db):
+            await send_admin_rights_error(update, context, db)
+            return
 
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
@@ -108,7 +114,7 @@ async def back_to_language_selection(update: Update, context: CallbackContext, d
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def set_language_handle(update: Update, context: CallbackContext, db):
-    """Установить язык с поддержкой групп"""
+    """Установить язык с проверкой прав того, кто добавил бота"""
     await register_user_if_not_exists(update.callback_query, context, update.callback_query.from_user, db)
 
     # Регистрируем группу если нужно
@@ -116,10 +122,17 @@ async def set_language_handle(update: Update, context: CallbackContext, db):
     await register_group_if_not_exists(update, context, db)
 
     query = update.callback_query
-    await query.answer()
-
     user_id = query.from_user.id
     chat_id = query.message.chat.id
+
+    # Проверяем права для групп - только тот, кто добавил бота
+    if chat_id < 0:  # Группа
+        if not await check_group_admin_rights(update, context, db):
+            await query.answer(t(user_id, "group_admin_only", chat_id=chat_id))
+            return
+
+    await query.answer()
+
     language = query.data.split("|")[1]
 
     # Определяем старый язык и устанавливаем новый

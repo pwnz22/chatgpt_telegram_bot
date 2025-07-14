@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode
 import config
-from utils import register_user_if_not_exists, register_group_if_not_exists
+from utils import register_user_if_not_exists, check_group_admin_rights, send_admin_rights_error
 from localization import t
 
 async def start_handle(update: Update, context: CallbackContext, db):
@@ -146,6 +146,12 @@ async def show_chat_modes_handle(update: Update, context: CallbackContext, db):
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
 
+    # Проверяем права для групп - только тот, кто добавил бота
+    if chat_id < 0:  # Группа
+        if not await check_group_admin_rights(update, context, db):
+            await send_admin_rights_error(update, context, db)
+            return
+
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
     text, reply_markup = get_chat_mode_menu(0, user_id, chat_id=chat_id, db=db)
@@ -186,6 +192,12 @@ async def set_chat_mode_handle(update: Update, context: CallbackContext, db):
 
     user_id = update.callback_query.from_user.id
     chat_id = update.callback_query.message.chat.id
+
+    # Проверяем права для групп - только тот, кто добавил бота
+    if chat_id < 0:  # Группа
+        if not await check_group_admin_rights(update, context, db):
+            await update.callback_query.answer(t(user_id, "group_admin_only", chat_id=chat_id))
+            return
 
     query = update.callback_query
     await query.answer()
@@ -267,6 +279,12 @@ async def settings_handle(update: Update, context: CallbackContext, db):
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
 
+    # Проверяем права для групп - только тот, кто добавил бота
+    if chat_id < 0:  # Группа
+        if not await check_group_admin_rights(update, context, db):
+            await send_admin_rights_error(update, context, db)
+            return
+
     db.set_user_attribute(user_id, "last_interaction", datetime.now())
 
     text, reply_markup = get_settings_menu(user_id, chat_id, db)
@@ -281,6 +299,12 @@ async def set_settings_handle(update: Update, context: CallbackContext, db):
 
     user_id = update.callback_query.from_user.id
     chat_id = update.callback_query.message.chat.id
+
+    # Проверяем права для групп - только тот, кто добавил бота
+    if chat_id < 0:  # Группа
+        if not await check_group_admin_rights(update, context, db):
+            await update.callback_query.answer(t(user_id, "group_admin_only", chat_id=chat_id))
+            return
 
     query = update.callback_query
     await query.answer()

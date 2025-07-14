@@ -136,6 +136,8 @@ For example: "{bot_username} write a poem about Telegram" """,
         "new_dialog_group_not_supported": "ℹ️ <i>New dialog command works only in private chats</i>",
         "group_language_changed": "✅ <b>Group language changed to English</b>\n\n💬 Now ChatGPT will respond in English in this group.",
         "group_language_already_set": "✅ <b>Group language already set: English</b>\n\n💬 ChatGPT responds in English in this group.",
+        "group_admin_only": "🔒 Only the user who added the bot to this group can change language and chat mode settings.",
+        "group_admin_info": "ℹ️ <b>Group Administration</b>\n\nOnly the user who added the bot can:\n• Change language settings\n• Change chat mode\n• Modify bot settings\n\nBot was added by: {admin_name}",
     },
 
     "ru": {
@@ -271,6 +273,8 @@ For example: "{bot_username} write a poem about Telegram" """,
         "new_dialog_group_not_supported": "ℹ️ <i>Команда нового диалога работает только в личных чатах</i>",
         "group_language_changed": "✅ <b>Язык группы изменен на Русский</b>\n\n💬 Теперь ChatGPT будет отвечать на русском языке в этой группе.",
         "group_language_already_set": "✅ <b>Язык группы уже установлен: Русский</b>\n\n💬 ChatGPT отвечает на русском языке в этой группе.",
+        "group_admin_only": "🔒 Только пользователь, который добавил бота в группу, может изменять настройки языка и режима чата.",
+        "group_admin_info": "ℹ️ <b>Администрирование группы</b>\n\nТолько пользователь, который добавил бота, может:\n• Изменять настройки языка\n• Изменять режим чата\n• Изменять настройки бота\n\nБота добавил: {admin_name}",
     }
 }
 

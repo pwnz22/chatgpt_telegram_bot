@@ -52,11 +52,13 @@ async def register_user_if_not_exists(update: Update, context: CallbackContext, 
         db.set_user_attribute(user.id, "n_generated_images", 0)
 
 async def register_group_if_not_exists(update: Update, context: CallbackContext, db):
-    """Регистрация группы если не существует"""
+    """Регистрация группы если не существует с определением администратора"""
     if update.message:
         chat = update.message.chat
+        user_id = update.message.from_user.id
     elif update.callback_query:
         chat = update.callback_query.message.chat
+        user_id = update.callback_query.from_user.id
     else:
         return
 
@@ -68,9 +70,50 @@ async def register_group_if_not_exists(update: Update, context: CallbackContext,
     group_title = chat.title or "Unknown Group"
 
     if not db.check_if_group_exists(group_id):
-        db.add_new_group(group_id, group_title)
+        # При первой регистрации устанавливаем текущего пользователя как администратора
+        # Это будет тот, кто добавил бота в группу
+        db.add_new_group(group_id, group_title, admin_id=user_id)
+    else:
+        # Обновляем время последнего взаимодействия
+        db.set_group_attribute(group_id, "last_interaction", datetime.now())
+
+async def check_group_admin_rights(update: Update, context: CallbackContext, db) -> bool:
+    """Проверить права администратора группы (только тот, кто добавил бота)"""
+    if update.message:
+        chat_id = update.message.chat.id
+        user_id = update.message.from_user.id
+    elif update.callback_query:
+        chat_id = update.callback_query.message.chat.id
+        user_id = update.callback_query.from_user.id
+    else:
+        return False
+
+    # Для личных чатов всегда разрешаем
+    if chat_id > 0:
+        return True
+
+    # Проверяем, является ли пользователь тем, кто добавил бота в группу
+    group_admin_id = db.get_group_attribute(chat_id, "admin_id")
+    return group_admin_id == user_id
+
 
 def split_text_into_chunks(text, chunk_size):
     """Разделение текста на части"""
     for i in range(0, len(text), chunk_size):
         yield text[i:i + chunk_size]
+
+async def send_admin_rights_error(update: Update, context: CallbackContext, db):
+    """Отправить сообщение об отсутствии прав администратора"""
+    from localization import t
+
+    if update.message:
+        user_id = update.message.from_user.id
+        chat_id = update.message.chat.id
+        reply_method = update.message.reply_text
+    else:
+        user_id = update.callback_query.from_user.id
+        chat_id = update.callback_query.message.chat.id
+        reply_method = lambda text, **kwargs: update.callback_query.answer(text)
+
+    error_text = t(user_id, "group_admin_only", chat_id=chat_id)
+    await reply_method(error_text)

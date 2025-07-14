@@ -35,20 +35,34 @@ class Database:
                 return False
 
 
-    def add_new_group(self, group_id: int, group_title: str = ""):
-        """Добавить новую группу"""
+    def add_new_group(self, group_id: int, group_title: str = "", admin_id: int = None):
+        """Добавить новую группу с указанием администратора (тот, кто добавил бота)"""
         group_dict = {
             "_id": group_id,
             "title": group_title,
+            "admin_id": admin_id,  # ID пользователя, который добавил бота в группу
             "current_chat_mode": "assistant",
-            "current_model": config.default_model,  # Используем из env
-            "language": "en",  # Язык по умолчанию
+            "current_model": config.default_model,
+            "language": "en",
             "created_at": datetime.now(),
             "last_interaction": datetime.now()
         }
 
         if not self.check_if_group_exists(group_id):
             self.db["groups"].insert_one(group_dict)
+
+    def is_group_admin(self, group_id: int, user_id: int) -> bool:
+        """Проверить, является ли пользователь тем, кто добавил бота в группу"""
+        admin_id = self.get_group_admin_id(group_id)
+        return admin_id == user_id
+
+    def get_group_admin_id(self, group_id: int) -> Optional[int]:
+        """Получить ID администратора группы (того, кто добавил бота)"""
+        return self.get_group_attribute(group_id, "admin_id")
+
+    def set_group_admin_id(self, group_id: int, admin_id: int):
+        """Установить ID администратора группы"""
+        self.set_group_attribute(group_id, "admin_id", admin_id)
 
     def get_group_attribute(self, group_id: int, key: str):
         """Получить атрибут группы"""
