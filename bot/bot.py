@@ -13,7 +13,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     PreCheckoutQueryHandler,
     AIORateLimiter,
-    filters
+    filters,
+    ChatMemberHandler
 )
 from telegram.constants import ParseMode
 
@@ -63,6 +64,8 @@ from language_handlers import (
     language_info_callback_handle,
     back_to_language_callback_handle
 )
+
+from member_handlers import my_chat_member_handler, chat_member_handler
 
 # Setup
 db = database.Database()
@@ -152,6 +155,9 @@ def run_bot() -> None:
         user_ids = [x for x in any_ids if x > 0]
         group_ids = [x for x in any_ids if x < 0]
         user_filter = filters.User(username=usernames) | filters.User(user_id=user_ids) | filters.Chat(chat_id=group_ids)
+
+    application.add_handler(ChatMemberHandler(lambda u, c: my_chat_member_handler(u, c, db), ChatMemberHandler.MY_CHAT_MEMBER))
+    application.add_handler(ChatMemberHandler(lambda u, c: chat_member_handler(u, c, db), ChatMemberHandler.CHAT_MEMBER))
 
     # Основные обработчики команд
     application.add_handler(CommandHandler("start", lambda u, c: start_handle(u, c, db), filters=user_filter))

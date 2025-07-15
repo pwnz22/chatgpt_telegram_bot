@@ -138,6 +138,8 @@ For example: "{bot_username} write a poem about Telegram" """,
         "group_language_already_set": "✅ <b>Group language already set: English</b>\n\n💬 ChatGPT responds in English in this group.",
         "group_admin_only": "🔒 Only the user who added the bot to this group can change language and chat mode settings.",
         "group_admin_info": "ℹ️ <b>Group Administration</b>\n\nOnly the user who added the bot can:\n• Change language settings\n• Change chat mode\n• Modify bot settings\n\nBot was added by: {admin_name}",
+        "group_admin_only_with_name": "🔒 Only {admin_name} (who added the bot to this group) can change language and chat mode settings.",
+        "bot_added_to_group": "👋 Hello! I was added to this group by {admin_name}.\n\n🔧 Only {admin_name} can change my settings in this group.\n\n📝 To get a response, mention me (@{bot_username}) or reply to my message.",
     },
 
     "ru": {
@@ -275,6 +277,8 @@ For example: "{bot_username} write a poem about Telegram" """,
         "group_language_already_set": "✅ <b>Язык группы уже установлен: Русский</b>\n\n💬 ChatGPT отвечает на русском языке в этой группе.",
         "group_admin_only": "🔒 Только пользователь, который добавил бота в группу, может изменять настройки языка и режима чата.",
         "group_admin_info": "ℹ️ <b>Администрирование группы</b>\n\nТолько пользователь, который добавил бота, может:\n• Изменять настройки языка\n• Изменять режим чата\n• Изменять настройки бота\n\nБота добавил: {admin_name}",
+        "group_admin_only_with_name": "🔒 Только {admin_name} (который добавил бота в группу) может изменять настройки языка и режима чата.",
+        "bot_added_to_group": "👋 Привет! Меня добавил в эту группу {admin_name}.\n\n🔧 Только {admin_name} может изменять мои настройки в этой группе.\n\n📝 Чтобы получить ответ, упомяните меня (@{bot_username}) или ответьте на моё сообщение.",
     }
 }
 

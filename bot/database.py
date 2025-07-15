@@ -36,7 +36,7 @@ class Database:
 
 
     def add_new_group(self, group_id: int, group_title: str = "", admin_id: int = None):
-        """Добавить новую группу с указанием администратора (тот, кто добавил бота)"""
+        """Добавить новую группу с указанием администратора"""
         group_dict = {
             "_id": group_id,
             "title": group_title,
